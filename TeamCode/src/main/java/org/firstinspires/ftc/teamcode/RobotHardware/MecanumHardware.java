@@ -15,7 +15,6 @@ public class MecanumHardware {
     public DcMotor leftFrontDrive = null;
     private IMU imu = null;
 
-
     public void init(HardwareMap hardwareMap) {
 
         rightBackDrive = hardwareMap.get(DcMotor.class, "rightBackDrive");
@@ -25,8 +24,8 @@ public class MecanumHardware {
         imu = hardwareMap.get(IMU.class,"imu");
 
         // Set motor directions
-        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
 
@@ -40,7 +39,6 @@ public class MecanumHardware {
                 RevHubOrientationOnRobot.UsbFacingDirection.FORWARD);
 
         imu.initialize(new IMU.Parameters(RevHubOrientation));
-
     }
     public void drive(double forward, double strafe, double turn) {
 
@@ -67,7 +65,6 @@ public class MecanumHardware {
         }
     }
 
-
     public void driveFieldRelative(double forward, double strafe, double turn){
         double theta = Math.atan2(forward, strafe);
         double r = Math.hypot(strafe, forward);
@@ -79,7 +76,6 @@ public class MecanumHardware {
         double newstrafe = r = Math.cos(theta);
 
         this.drive(newforward,newstrafe, turn);
-
     }
 
     public void stop() {
