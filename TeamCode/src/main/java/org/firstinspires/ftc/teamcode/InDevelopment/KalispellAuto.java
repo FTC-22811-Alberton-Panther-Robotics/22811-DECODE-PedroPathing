@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -53,8 +53,8 @@ public class KalispellAuto extends OpMode{
     @Override
     public void stop() {
         mecanumHardware.stop();
-        transferHardware.Transfer(TransferHardware.Direction.FORWARD, false);
-        intakeHardware.Intake(IntakeHardware.Direction.FORWARD, false);
+        transferHardware.stop();
+        intakeHardware.stop();
         launcherHardware.stop();
 
     }

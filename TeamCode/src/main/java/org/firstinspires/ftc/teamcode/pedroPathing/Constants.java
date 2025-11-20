@@ -59,9 +59,7 @@ public class Constants {
             .forwardPodY(-8.5)
             .strafePodX(2.5)
             .distanceUnit(DistanceUnit.INCH)
-            //.forwardEncoderDirection(Encoder.REVERSE) //TODO: select & run localization test under the localization folder in the tuning OpMode, then move the robot forward. The x coordinate should increase.
-            //.strafeEncoderDirection(Encoder.REVERSE) //TODO: Next move the robot left. The y coordinate should increase. If either of those does not happen, you must reverse the respective encoder (uncomment these lines)
-            .hardwareMapName("pinpoint") //TODO: Correct hardware map name from "pinpoint" to whatever it is (String)
+            .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);

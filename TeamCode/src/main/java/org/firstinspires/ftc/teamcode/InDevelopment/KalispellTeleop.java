@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -45,17 +45,17 @@ public class KalispellTeleop extends OpMode {
             mecanumHardware.drive(forward, strafe, turn);
             // Intake
             if (gamepad1.dpad_right){
-                intakeHardware.Intake(IntakeHardware.Direction.FORWARD, true);
+                intakeHardware.run();
             }else if (gamepad1.dpad_left){
-                intakeHardware.Intake(IntakeHardware.Direction.REVERSE, true);
+                intakeHardware.reverse();
             }else if (gamepad1.dpad_down){
-                intakeHardware.Intake(IntakeHardware.Direction.FORWARD, false);
+                intakeHardware.run();
 
             }
             // Launcher flywheel speed
             if (gamepad1.right_bumper) {
                 if (runtime.seconds() - rightBumperLastTime > .075) {
-                    if (targetShooterSpeed_RPM < LauncherHardware.MAX_SHOOTER_SPEED) {
+                    if (targetShooterSpeed_RPM < LauncherHardware.MAX_RPM) {
                         targetShooterSpeed_RPM += SHOOTER_SPEED_INCREMENT;
                     }
                     rightBumperLastTime = runtime.seconds();
@@ -72,9 +72,9 @@ public class KalispellTeleop extends OpMode {
             // reverses launchers hopefully
 
             if(gamepad1.b) {
-                launcherHardware.reverseRunLauncher(true);
+                launcherHardware.reverse();
             }else{
-                launcherHardware.reverseRunLauncher(false);
+                launcherHardware.reverse();
             }
 
             // Toggle shooter
@@ -89,18 +89,18 @@ public class KalispellTeleop extends OpMode {
 
 
             if (shootersOn) {
-                launcherHardware.runLauncher(targetShooterSpeed_RPM);
+                launcherHardware.spinUp(targetShooterSpeed_RPM);
             } else {
-                launcherHardware.runLauncher(0);
+                launcherHardware.spinUp(0);
             }
 
             // Ball transfer
             if(gamepad1.right_trigger > 0.1){
-                transferHardware.Transfer(TransferHardware.Direction.FORWARD, true);
+                transferHardware.run();
             }else if (gamepad1.left_trigger > 0.1){
-                transferHardware.Transfer(TransferHardware.Direction.REVERSE, true);
+                transferHardware.reverse();
             } else{
-                transferHardware.Transfer(TransferHardware.Direction.FORWARD, false);
+                transferHardware.stop();
             }
             // Telemetry
             telemetry.addData("Status", "Running");
@@ -113,8 +113,8 @@ public class KalispellTeleop extends OpMode {
     }
 
     public void stop(){
-        transferHardware.Transfer(TransferHardware.Direction.FORWARD, false);
-        intakeHardware.Intake(IntakeHardware.Direction.FORWARD, false);
+        transferHardware.stop();
+        intakeHardware.stop();
         launcherHardware.stop();
     }
 

@@ -6,22 +6,28 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class TransferHardware {
     public CRServo transferServo;
-    public static enum Direction {FORWARD, REVERSE};
+    private static final double TRANSFER_POWER = 1.0;
 
     public void init(HardwareMap hardwareMap){
         transferServo = hardwareMap.get(CRServo.class, "transfer");
-        transferServo.setPower(0.0);
         transferServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        stop(); // Ensure it's off at init
     }
 
-    public void Transfer(Direction direction, boolean transferOn){
-        if(transferOn && direction == Direction.FORWARD){
-            transferServo.setPower(1.0);
-        }else if(transferOn && direction == Direction.REVERSE) {
-            transferServo.setPower(-1.0);
-        } else {
-            transferServo.setPower(0.0);
-        }
+    // --- Public Methods ---
+
+    /** Runs the transfer to move pixels towards the launcher. */
+    public void run() {
+        transferServo.setPower(TRANSFER_POWER);
+    }
+
+    /** Reverses the transfer. */
+    public void reverse() {
+        transferServo.setPower(-TRANSFER_POWER);
+    }
+
+    /** Stops the transfer. */
+    public void stop() {
+        transferServo.setPower(0.0);
     }
 }
-
