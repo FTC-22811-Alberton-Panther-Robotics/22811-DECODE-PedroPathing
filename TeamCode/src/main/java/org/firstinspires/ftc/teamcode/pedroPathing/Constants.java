@@ -17,10 +17,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(8.25);
-    // These are just examples, you will need to tune these for your robot
-    // .forwardZeroPowerAcceleration(-25.9)
-    // .lateralZeroPowerAcceleration(-67.3)
+            .mass(8.25)
+     .forwardZeroPowerAcceleration(-25.9)
+     .lateralZeroPowerAcceleration(-64.46128517815318);
     // .translationalPIDFCoefficients(new PIDFCoefficients(0.03, 0, 0, 0.015))
     // .headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0, 0.01));
 
@@ -37,8 +36,8 @@ public class Constants {
         public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
         public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
 
-        public double X_VELOCITY = 58.291667307455704;
-        public double Y_VELOCITY = 58.291667307455704; // Set to X initially, tune if needed
+        public double X_VELOCITY = 59.76379634827142;
+        public double Y_VELOCITY = 47.75367220180242; // Set to X initially, tune if needed
 
         public final String VOLTAGE_SENSOR_NAME = "Control Hub";
 
@@ -66,13 +65,11 @@ public class Constants {
     }
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-8.5)
-            .strafePodX(2.5)
+            .forwardPodY(-1.75)
+            .strafePodX(6.625)
             .distanceUnit(DistanceUnit.INCH)
-            //.forwardEncoderDirection(Encoder.REVERSE) //TODO: select & run localization test under the localization folder in the tuning OpMode, then move the robot forward. The x coordinate should increase.
-            //.strafeEncoderDirection(Encoder.REVERSE) //TODO: Next move the robot left. The y coordinate should increase. If either of those does not happen, you must reverse the respective encoder (uncomment these lines)
-            .hardwareMapName("pinpoint") //TODO: Correct hardware map name from "pinpoint" to whatever it is (String)
+            .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
 }
