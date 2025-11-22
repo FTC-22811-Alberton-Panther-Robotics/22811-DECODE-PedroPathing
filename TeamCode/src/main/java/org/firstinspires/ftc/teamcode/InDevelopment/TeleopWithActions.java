@@ -1,5 +1,6 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -9,6 +10,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.MecanumHardware;
 
 @TeleOp(name="ButteTeleop (Actions)", group="01 Butte")
+@Disabled
 public class TeleopWithActions extends OpMode {
 
     // --- Declare OpMode members ---

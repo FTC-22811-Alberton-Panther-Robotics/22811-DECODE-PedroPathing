@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.InDevelopment;
+package org.firstinspires.ftc.teamcode.Competition;
 
 // These are the required imports for a PedroPathing autonomous routine.
 import com.pedropathing.follower.Follower;
@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 /**
@@ -20,8 +22,10 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * During the init phase, use the gamepad to configure the autonomous settings.
  * This example is heavily commented to guide students on how to create their own routines.
  */
-@Autonomous(name = "CONFIGURABLE Pedro Auto", group = "Pedro")
-public class ExamplePedroAuto extends OpMode {
+@Autonomous(name = "CONFIGURABLE Pedro Auto", group = "Pedro", preselectTeleOp = "Butte2Controller")
+public class ButtePedroAuto extends OpMode {
+
+    RobotHardwareContainer robot;
 
     // ========== CONFIGURABLE SETTINGS ==========
 
@@ -43,10 +47,33 @@ public class ExamplePedroAuto extends OpMode {
     private StartPosition startPosition = StartPosition.FRONT;
     private AutoPath autoPath = AutoPath.SCORE_AND_PARK;
 
+    // Pose list
+    private static Pose BLUE_FRONT_START = new Pose(56, 9, Math.toRadians(90));
+    private Pose BLUE_BACK_START = new Pose(33, 135, Math.toRadians(270));
+    private Pose RED_FRONT_START = new Pose(88, 9, Math.toRadians(90));
+    private Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
+
+    private Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(225));
+    private Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
+    private Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
+    private Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
+
+    private Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(225));
+    private Pose RED_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
+    private Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
+    private Pose RED_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
+    private Pose BLUE_AUTO_PARK = new Pose(60, 60, Math.toRadians(180));
+    private Pose RED_AUTO_PARK = new Pose(84, 60, Math.toRadians(0));
+
+
+
+
     // Gamepad state tracking to prevent multiple button presses on one click.
     private Gamepad.RumbleEffect customRumbleEffect;
     private boolean dpad_up_pressed = false;
     private boolean dpad_down_pressed = false;
+    private boolean dpad_left_pressed = false;
+    private boolean dpad_right_pressed = false;
     private boolean left_bumper_pressed = false;
     private boolean right_bumper_pressed = false;
 
@@ -62,7 +89,9 @@ public class ExamplePedroAuto extends OpMode {
     // === PATHING ===
     // We will now calculate the startPose in init() based on the selected options.
     private Pose startPose;
-    private Pose pickupPose;
+    private Pose pickupFrontPose;
+    private Pose pickupMiddlePose;
+    private Pose pickupBackPose;
     private Pose scorePose;
     private Pose parkPose;
 
@@ -98,19 +127,19 @@ public class ExamplePedroAuto extends OpMode {
         // --- Gamepad Logic for Configuration ---
 
         // Alliance Selection (D-Pad Up/Down)
-        if (gamepad1.dpad_up && !dpad_up_pressed) {
+        if (gamepad1.dpad_left && !dpad_left_pressed) {
             alliance = Alliance.BLUE;
             gamepad1.runRumbleEffect(customRumbleEffect);
-        } else if (gamepad1.dpad_down && !dpad_down_pressed) {
+        } else if (gamepad1.dpad_right && !dpad_right_pressed) {
             alliance = Alliance.RED;
             gamepad1.runRumbleEffect(customRumbleEffect);
         }
 
         // Start Position Selection (Bumpers)
-        if (gamepad1.left_bumper && !left_bumper_pressed) {
+        if (gamepad1.dpad_up && !dpad_up_pressed) {
             startPosition = StartPosition.FRONT;
             gamepad1.runRumbleEffect(customRumbleEffect);
-        } else if (gamepad1.right_bumper && !right_bumper_pressed) {
+        } else if (gamepad1.dpad_down && !dpad_down_pressed) {
             startPosition = StartPosition.BACK;
             gamepad1.runRumbleEffect(customRumbleEffect);
         }
@@ -118,8 +147,8 @@ public class ExamplePedroAuto extends OpMode {
         // --- Update Button Pressed States ---
         dpad_up_pressed = gamepad1.dpad_up;
         dpad_down_pressed = gamepad1.dpad_down;
-        left_bumper_pressed = gamepad1.left_bumper;
-        right_bumper_pressed = gamepad1.right_bumper;
+        dpad_left_pressed = gamepad1.dpad_left;
+        dpad_right_pressed = gamepad1.dpad_right;
 
         // --- Telemetry for Configuration ---
         telemetry.clearAll();
@@ -155,20 +184,25 @@ public class ExamplePedroAuto extends OpMode {
      * The field is symmetrical, so we can flip coordinates for the red alliance.
      */
     private void calculatePoses() {
-        double x_mult = (alliance == Alliance.BLUE) ? 1.0 : -1.0;
-        double y_mult = 1.0; // Assuming Y is consistent for now
-        double heading_offset = (alliance == Alliance.BLUE) ? 0 : Math.PI;
+        double heading_offset = (alliance == Alliance.BLUE) ? 0 : -Math.PI;
 
         // Example poses - TUNE THESE FOR YOUR ROBOT AND GAME
-        if (startPosition == StartPosition.FRONT) {
-            startPose = new Pose(12 * x_mult, 12 * y_mult, Math.toRadians(90) + heading_offset);
-        } else { // BACK
-            startPose = new Pose(-36 * x_mult, 12 * y_mult, Math.toRadians(90) + heading_offset);
+
+        if (alliance == Alliance.BLUE && startPosition == StartPosition.FRONT) {
+            startPose = BLUE_FRONT_START;
+        } else if ( alliance == Alliance.BLUE && startPosition == StartPosition.BACK) {
+            startPose = BLUE_BACK_START;
+        } else if (alliance == Alliance.RED && startPosition == StartPosition.FRONT) {
+            startPose = RED_FRONT_START;
+        } else if (alliance == Alliance.RED && startPosition == StartPosition.BACK){
+            startPose = RED_BACK_START;
         }
 
-        scorePose = new Pose(36 * x_mult, 120 * y_mult, Math.toRadians(225) + heading_offset);
-        pickupPose = new Pose(60 * x_mult, 24 * y_mult, Math.toRadians(0) + heading_offset);
-        parkPose = new Pose(60 * x_mult, 84 * y_mult, Math.toRadians(0) + heading_offset);
+        scorePose = (alliance == Alliance.BLUE)? BLUE_SCORE_POSE: RED_SCORE_POSE;
+        pickupFrontPose = (alliance == Alliance.BLUE)? BLUE_PICKUP_FRONT_SPIKE: RED_PICKUP_FRONT_SPIKE;
+        pickupMiddlePose = (alliance == Alliance.BLUE)? BLUE_PICKUP_MIDDLE_SPIKE: RED_PICKUP_MIDDLE_SPIKE;
+        pickupBackPose = (alliance == Alliance.BLUE)? BLUE_PICKUP_BACK_SPIKE: RED_PICKUP_BACK_SPIKE;
+        parkPose = (alliance == Alliance.BLUE)? BLUE_AUTO_PARK: RED_AUTO_PARK;
     }
 
 
@@ -208,8 +242,8 @@ public class ExamplePedroAuto extends OpMode {
         // --- Cycle Path ---
         if (autoPath == AutoPath.CYCLE) {
             cyclePath = follower.pathBuilder()
-                    .addPath(new BezierLine(scorePose, pickupPose))
-                    .setLinearHeadingInterpolation(scorePose.getHeading(), pickupPose.getHeading())
+                    .addPath(new BezierLine(scorePose, pickupFrontPose))
+                    .setLinearHeadingInterpolation(scorePose.getHeading(), pickupFrontPose.getHeading())
                     .build();
         }
     }
@@ -277,29 +311,29 @@ public class ExamplePedroAuto extends OpMode {
             case 0: // IDLE
                 break;
             case 1: // Start pickup sequence
-                // runIntake();
+                robot.intake.run();
                 actionTimer.reset();
                 setActionState(10);
                 break;
             case 10: // Wait for pickup to complete
                 if (actionTimer.seconds() > 1.5) {
-                    // stopIntake();
+                    robot.intake.stop();
                     setActionState(0);
                 }
                 break;
             case 2: // Start scoring sequence
-                // runShooter();
+                robot.launcher.spinUp();
                 actionTimer.reset();
                 setActionState(20);
                 break;
             case 20: // Wait for shooter to get to speed
                 if (actionTimer.seconds() > 1.0) {
-                    // pushPixelToShooter();
+                    // pushArtifactToShooter();
                     actionTimer.reset();
                     setActionState(21);
                 }
                 break;
-            case 21: // Wait for pixel to be shot
+            case 21: // Wait for artifact to be shot
                 if (actionTimer.seconds() > 0.5) {
                     // stopShooter();
                     // resetServo();

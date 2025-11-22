@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.InDevelopment;
+package org.firstinspires.ftc.teamcode.Competition;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -10,8 +10,8 @@ import org.firstinspires.ftc.teamcode.RobotHardware.MecanumHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
 
 
-@Autonomous(name="KalispellAuto", group="01 Kalispell")
-public class KalispellAuto extends OpMode{
+@Autonomous(name="ButteTimeAuto", group="01 Butte", preselectTeleOp="Butte2Controller")
+public class ButteTimeAuto extends OpMode{
     LauncherHardware launcherHardware = new LauncherHardware();
     IntakeHardware intakeHardware = new IntakeHardware();
     MecanumHardware mecanumHardware = new MecanumHardware();
@@ -42,6 +42,7 @@ public class KalispellAuto extends OpMode{
                 break;
             }
         }
+        mecanumHardware.stop();
     }
 
     @Override

@@ -1,10 +1,11 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.geometry.BezierLine;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import java.util.Optional;
 
 @Autonomous(name = "ButteAuto (Limelight)", group = "01 Butte")
+@Disabled
 public class ButteAuto_Limelight extends OpMode {
 
     // ========== CONFIGURATION ==========
