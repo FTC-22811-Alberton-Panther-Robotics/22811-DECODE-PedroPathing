@@ -34,7 +34,7 @@ public class ButteTimeAuto extends OpMode{
         // Drive forward for 2 seconds
         while (runtime.seconds() < 2) {
 
-            mecanumHardware.drive(.2, 0, 0);
+            mecanumHardware.drive(.5, 0, 0);
             telemetry.addData("Status", "Autonomous Running");
             telemetry.update();
 

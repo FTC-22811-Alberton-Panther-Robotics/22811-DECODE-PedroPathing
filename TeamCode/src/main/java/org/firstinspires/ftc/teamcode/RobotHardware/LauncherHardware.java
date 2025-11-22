@@ -11,8 +11,8 @@ public class LauncherHardware {
     private DcMotorEx rightFlywheel = null;
 
     // These should be tuned for your robot
-    public static final double TARGET_RPM = 2400; // The desired RPM for scoring
-    public static final double RPM_TOLERANCE = 100; // Allowable error in RPM
+    public static final double TARGET_RPM = 2500; // The desired RPM for scoring
+    public static final double RPM_TOLERANCE = 50; // Allowable error in RPM
     public static final double MAX_RPM = 6000; // Maximum RPM for the launcher
 
     public static final double TICKS_PER_REV = 28;

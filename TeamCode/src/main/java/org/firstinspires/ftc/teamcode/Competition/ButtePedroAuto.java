@@ -109,6 +109,9 @@ public class ButtePedroAuto extends OpMode {
                 .addStep(0.5, 0.5, 200)  // Rumble both motors at 50% power for 200 ms
                 .build();
 
+        // Initialize our RobotHardwareContainer.
+        robot = new RobotHardwareContainer(hardwareMap, telemetry);
+
         // Initialize timers and follower.
         pathTimer = new ElapsedTime();
         actionTimer = new ElapsedTime();
@@ -329,7 +332,6 @@ public class ButtePedroAuto extends OpMode {
             case 20: // Wait for shooter to get to speed
                 if (actionTimer.seconds() > 1.0) {
                     robot.transfer.run();
-                    // pushArtifactToShooter();
                     actionTimer.reset();
                     setActionState(21);
                 }
