@@ -15,9 +15,11 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.geometry.PedroCoordinates;
 import com.pedropathing.ftc.FTCCoordinates;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Manages all interactions with the Limelight 3A camera for the DECODE game season.
@@ -29,10 +31,12 @@ public class LimelightAprilTagLocalizer {
     private Limelight3A limelight;
     private Telemetry telemetry;
 
-    // Obelisk Pattern IDs have been moved to the persistent GameState class.
-
     // AprilTag IDs for the goals, used for localization.
     private static final List<Integer> GOAL_TAG_IDS = Arrays.asList(20, 24);
+
+    // --- New variables for enhanced telemetry ---
+    private int successfulPoseCalculations = 0;
+    private List<Integer> lastSeenTagIds = new ArrayList<>();
 
     /**
      * A simple data class to hold both the calculated pose and the latency of the reading.
@@ -84,7 +88,7 @@ public class LimelightAprilTagLocalizer {
     }
 
     /**
-     * Gets the robot's field-relative pose and latency, but only if a valid goal tag is visible.
+     * Gets the robot's field-relative pose and latency, and updates detailed telemetry.
      * @return An Optional containing the robot's pose and latency, or an empty Optional otherwise.
      */
     public Optional<LimelightPoseData> getRobotPoseWithLatency() {
@@ -94,7 +98,16 @@ public class LimelightAprilTagLocalizer {
 
         LLResult result = limelight.getLatestResult();
 
-        if (result != null && result.isValid()) {
+        // --- Enhanced Telemetry Logic ---
+        if (result == null || !result.isValid()) {
+            telemetry.addLine("Limelight Result: INVALID or NULL");
+            lastSeenTagIds.clear();
+        } else {
+            // Record all tags seen in this frame.
+            lastSeenTagIds = result.getFiducialResults().stream()
+                                    .map(LLResultTypes.FiducialResult::getFiducialId)
+                                    .collect(Collectors.toList());
+
             boolean hasValidTag = false;
             for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
                 if (GOAL_TAG_IDS.contains(tag.getFiducialId())) {
@@ -105,34 +118,40 @@ public class LimelightAprilTagLocalizer {
 
             if (hasValidTag) {
                 Pose3D botpose = result.getBotpose();
-                if (botpose != null) {
+                if (botpose != null && (botpose.getPosition().x != 0.0 || botpose.getPosition().y != 0.0)) {
+                    successfulPoseCalculations++; // Increment our success counter.
+
                     Position position = botpose.getPosition();
                     YawPitchRollAngles orientation = botpose.getOrientation();
-
-                    if (position.x != 0.0 || position.y != 0.0) {
-                        Pose ftcPose = new Pose(
-                                position.x,
-                                position.y,
-                                orientation.getYaw(AngleUnit.RADIANS),
-                                FTCCoordinates.INSTANCE
-                        );
-
-                        Pose pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE);
-
-                        // Use the correct method names from the LLResult class
-                        double latencySeconds = (result.getCaptureLatency() + result.getTargetingLatency()) / 1000.0;
-
-                        telemetry.addData("Limelight Pose (X, Y, H)", "%.2f, %.2f, %.1f",
-                                pedroPose.getX(), pedroPose.getY(), Math.toDegrees(pedroPose.getHeading()));
-                        telemetry.addData("Limelight Latency (s)", "%.3f", latencySeconds);
-
-                        return Optional.of(new LimelightPoseData(pedroPose, latencySeconds));
-                    }
+                    Pose ftcPose = new Pose(
+                            position.x,
+                            position.y,
+                            orientation.getYaw(AngleUnit.RADIANS),
+                            FTCCoordinates.INSTANCE
+                    );
+                    Pose pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+                    double latencySeconds = (result.getCaptureLatency() + result.getTargetingLatency()) / 1000.0;
+                    
+                    telemetry.addData("Limelight Pose (X, Y, H)", "%.2f, %.2f, %.1f",
+                            pedroPose.getX(), pedroPose.getY(), Math.toDegrees(pedroPose.getHeading()));
+                    telemetry.addData("Limelight Latency (s)", "%.3f", latencySeconds);
+                    
+                    updateDebugTelemetry();
+                    return Optional.of(new LimelightPoseData(pedroPose, latencySeconds));
                 }
             }
         }
 
-        telemetry.addData("Limelight Pose", "None (No valid goal tag)");
+        telemetry.addLine("Limelight Pose: None (No valid GOAL tag found or bad botpose)");
+        updateDebugTelemetry();
         return Optional.empty();
+    }
+
+    /**
+     * Helper method to send detailed debug information to telemetry every loop.
+     */
+    private void updateDebugTelemetry() {
+        telemetry.addData("LL Valid Poses Count", successfulPoseCalculations);
+        telemetry.addData("LL Last Seen IDs", lastSeenTagIds.toString());
     }
 }

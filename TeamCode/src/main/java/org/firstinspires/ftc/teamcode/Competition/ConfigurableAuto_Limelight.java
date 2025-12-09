@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.Competition;
+package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -243,8 +243,18 @@ public class ConfigurableAuto_Limelight extends OpMode {
             case 101: if (!actionManager.isBusy()) advanceToNextCommand(); break;
 
             // --- Gate Hitting Sub-States (200-series) ---
-            case 200: if (!follower.isBusy()) { follower.followPath(new Path(new BezierLine(follower.getPose(), gateTriggerPose))); setPathState(201); } break;
-            case 201: if (!follower.isBusy()) { follower.followPath(new Path(new BezierLine(follower.getPose(), gateApproachPose))); setPathState(202); } break;
+            case 200: 
+                if (!follower.isBusy()) { 
+                    followPath(gateTriggerPose);
+                    setPathState(201); 
+                } 
+                break;
+            case 201: 
+                if (!follower.isBusy()) { 
+                    followPath(gateApproachPose);
+                    setPathState(202);
+                } 
+                break;
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
             // --- Intake Cycle Sub-States (300-series) ---
@@ -270,8 +280,12 @@ public class ConfigurableAuto_Limelight extends OpMode {
                         advanceToNextCommand();
                     } else { // Move to the next ball
                         double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
-                        Pose nextBallPose = follower.getPose().plus(new Pose(0, offset, 0));
-                        follower.followPath(new Path(new BezierLine(follower.getPose(), nextBallPose)));
+                        Pose currentPose = follower.getPose();
+                        Pose nextBallPose = currentPose.plus(new Pose(0, offset, 0));
+                        // For the small strafe, we want to maintain our heading.
+                        Path pathToNextBall = new Path(new BezierLine(currentPose, nextBallPose));
+                        pathToNextBall.setConstantHeadingInterpolation(currentPose.getHeading());
+                        follower.followPath(pathToNextBall);
                         setPathState(301); // Go back to set diverter for the next ball
                     }
                 }
@@ -287,39 +301,46 @@ public class ConfigurableAuto_Limelight extends OpMode {
         switch (command) {
             case GO_TO_FRONT_SPIKE:
                 currentSpikeContext = SpikeLocation.FRONT;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), frontSpike)));
+                followPath(frontSpike);
                 setPathState(2);
                 break;
             case GO_TO_MIDDLE_SPIKE:
                 currentSpikeContext = SpikeLocation.MIDDLE;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), middleSpike)));
+                followPath(middleSpike);
                 setPathState(2);
                 break;
             case GO_TO_BACK_SPIKE:
                 currentSpikeContext = SpikeLocation.BACK;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), backSpike)));
+                followPath(backSpike);
                 setPathState(2);
                 break;
             case INTAKE_CYCLE:
-                // Set the correct color order based on which spike we think we're at.
                 if (currentSpikeContext == SpikeLocation.FRONT) intakeColorOrder = SPIKE_FRONT_COLORS;
                 else if (currentSpikeContext == SpikeLocation.MIDDLE) intakeColorOrder = SPIKE_MIDDLE_COLORS;
-                else intakeColorOrder = SPIKE_BACK_COLORS; // Default to back
-                setPathState(300); // Start the intake sub-state machine
+                else intakeColorOrder = SPIKE_BACK_COLORS;
+                setPathState(300);
                 break;
             case SCORE:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), scorePose)));
-                setPathState(100); // Start the scoring sub-state machine
+                followPath(scorePose);
+                setPathState(100);
                 break;
             case HIT_GATE:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), gateApproachPose)));
-                setPathState(200); // Start the gate hitting sub-state machine
+                followPath(gateApproachPose);
+                setPathState(200);
                 break;
             case PARK:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), parkPose)));
+                followPath(parkPose);
                 setPathState(2);
                 break;
         }
+    }
+
+    /** Small helper method to build a path with heading interpolation, keeping the call site clean. */
+    private void followPath(Pose targetPose) {
+        Pose currentPose = follower.getPose();
+        Path newPath = new Path(new BezierLine(currentPose, targetPose));
+        newPath.setLinearHeadingInterpolation(currentPose.getHeading(), targetPose.getHeading());
+        follower.followPath(newPath);
     }
 
     /** Advances the playlist to the next command. */
