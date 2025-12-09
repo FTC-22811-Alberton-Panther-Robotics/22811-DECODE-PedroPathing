@@ -29,12 +29,9 @@ public class LimelightAprilTagLocalizer {
     private Limelight3A limelight;
     private Telemetry telemetry;
 
-    // Custom AprilTag motif IDs for randomization.
-    public static final int MOTIF_GPP_ID = 21;
-    public static final int MOTIF_PGP_ID = 22;
-    public static final int MOTIF_PPG_ID = 23;
+    // Obelisk Pattern IDs have been moved to the persistent GameState class.
 
-    // CORRECTED: AprilTag IDs for the goals, used for localization.
+    // AprilTag IDs for the goals, used for localization.
     private static final List<Integer> GOAL_TAG_IDS = Arrays.asList(20, 24);
 
     /**
