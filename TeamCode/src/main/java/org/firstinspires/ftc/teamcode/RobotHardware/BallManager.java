@@ -14,6 +14,8 @@ import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 public class BallManager {
 
     private final RobotHardwareContainer robot;
+
+    private final BallTransferHardware BallTransfer;
     private final IntakeHardware intake;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;
@@ -36,6 +38,11 @@ public class BallManager {
         LAUNCHING_FIRE,
         REVERSING,
         ACTION_COMPLETE,
+        BALL_TRANSFER_RIGHT,
+        BALL_TRANSFER_LEFT,
+        BALL_SCOOP,
+        BALL_SCOOP_RESET,
+
 
     }
     private  BallActions  currentState = IDLE;
@@ -55,18 +62,30 @@ public class BallManager {
                 }
                 break;
 
-            case LAUNCHING_SPINUP:
-                if (launcher.isAtTargetSpeed()) {
-                    transfer.run();
-                    actionTimer.reset();
-                    currentState = BallActions.LAUNCHING_FIRE;
+//            case LAUNCHING_SPINUP:
+//                if (launcher.isAtTargetSpeed()) {
+//                    transfer.run();
+//                    actionTimer.reset();
+//                    currentState = BallActions.LAUNCHING_FIRE;
+//                }
+//                break;
+
+//            case LAUNCHING_FIRE:
+//                if (actionTimer.seconds() > 2.0) { // Tune this time
+//                    stopAll();
+//                    currentState = BallActions.ACTION_COMPLETE;
+//                }
+//                break;
+
+            case BALL_TRANSFER_LEFT:
+                if(){
+
                 }
                 break;
 
-            case LAUNCHING_FIRE:
-                if (actionTimer.seconds() > 2.0) { // Tune this time
-                    stopAll();
-                    currentState = BallActions.ACTION_COMPLETE;
+            case BALL_TRANSFER_RIGHT:
+                if(){
+
                 }
                 break;
         }

@@ -16,7 +16,9 @@ public class ShootSequence {
     public void ballUp(){
         ballScoop.setPosition(1);
     }
-
+    public void ballDown(){
+        ballScoop.setPosition(1);
+    }
 
 
 
