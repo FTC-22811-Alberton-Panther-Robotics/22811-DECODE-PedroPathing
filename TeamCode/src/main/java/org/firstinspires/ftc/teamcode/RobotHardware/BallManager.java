@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.ACTION_COMPLETE;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.IDLE;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.INTAKING;
+
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
@@ -7,7 +11,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 
-public class ActionManager {
+public class BallManager {
 
     private final RobotHardwareContainer robot;
     private final IntakeHardware intake;
@@ -17,7 +21,15 @@ public class ActionManager {
     private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
-    public enum ActionState {
+    public BallManager(RobotHardwareContainer robot, IntakeHardware intake, LauncherHardware launcher, TransferHardware transfer, ColorDiverterHardware colorDiverter) {
+        this.robot = robot;
+        this.intake = intake;
+        this.launcher = launcher;
+        this.transfer = transfer;
+        this.colorDiverter = colorDiverter;
+    }
+
+    public enum BallActions {
         IDLE,
         INTAKING,
         LAUNCHING_SPINUP,
@@ -26,15 +38,10 @@ public class ActionManager {
         ACTION_COMPLETE,
 
     }
-    private ActionState currentState = ActionState.IDLE;
+    private  BallActions  currentState = IDLE;
 
-    public ActionManager(RobotHardwareContainer robotContainer) {
-        this.robot = robotContainer;
-        this.intake = robot.intake;
-        this.launcher = robot.launcher;
-        this.transfer = robot.transfer;
-        this.colorDiverter = robot.colorDiverter; // This can be null
-    }
+
+
 
     public void update() {
         switch (currentState) {
@@ -44,7 +51,7 @@ public class ActionManager {
             case INTAKING:
                 if (actionTimer.seconds() > 2.5) { // Tune this time
                     stopAll();
-                    currentState = ActionState.ACTION_COMPLETE;
+                    currentState = ACTION_COMPLETE;
                 }
                 break;
 
@@ -52,14 +59,14 @@ public class ActionManager {
                 if (launcher.isAtTargetSpeed()) {
                     transfer.run();
                     actionTimer.reset();
-                    currentState = ActionState.LAUNCHING_FIRE;
+                    currentState = BallActions.LAUNCHING_FIRE;
                 }
                 break;
 
             case LAUNCHING_FIRE:
                 if (actionTimer.seconds() > 2.0) { // Tune this time
                     stopAll();
-                    currentState = ActionState.ACTION_COMPLETE;
+                    currentState = BallActions.ACTION_COMPLETE;
                 }
                 break;
         }
@@ -69,19 +76,19 @@ public class ActionManager {
 
     public void startIntake() {
         if (isBusy()) return;
-        currentState = ActionState.INTAKING;
+        currentState = BallActions.INTAKING;
         intake.run();
         actionTimer.reset();
     }
 
     public void startLaunch() {
         if (isBusy()) return;
-        currentState = ActionState.LAUNCHING_SPINUP;
+        currentState = BallActions.LAUNCHING_SPINUP;
         launcher.spinUp();
     }
 
     public void reverseAll() {
-        currentState = ActionState.REVERSING;
+        currentState = BallActions.REVERSING;
         intake.reverse();
         launcher.reverse();
         transfer.reverse();
@@ -104,17 +111,17 @@ public class ActionManager {
     }
 
     public boolean isBusy() {
-        return currentState != ActionState.IDLE && currentState != ActionState.ACTION_COMPLETE;
+        return currentState != BallActions.IDLE && currentState != BallActions.ACTION_COMPLETE;
     }
 
     public void completeAction() {
-        currentState = ActionState.IDLE;
+        currentState = BallActions.IDLE;
     }
 
     public void stopAll() {
         intake.stop();
         launcher.stop();
         transfer.stop();
-        currentState = ActionState.IDLE;
+        currentState = BallActions.IDLE;
     }
 }

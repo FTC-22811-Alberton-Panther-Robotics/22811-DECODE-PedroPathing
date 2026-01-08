@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
-import org.firstinspires.ftc.teamcode.RobotHardware.MecanumHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
 
 @TeleOp(name="TeleopManualControls", group="01 Butte")
 public class TeleopManualControls extends OpMode {

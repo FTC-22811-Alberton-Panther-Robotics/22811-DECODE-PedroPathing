@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.RobotHardware;
+package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -11,7 +11,7 @@ public class IntakeHardware {
     private static final double INTAKE_POWER = 1.0;
 
     public void init(HardwareMap hardwareMap) {
-        intakeMotor = hardwareMap.get(DcMotorEx.class, "activeIntake");
+        intakeMotor = hardwareMap.get(DcMotorEx.class, "Intake");
         intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         stop(); // Ensure motor is off at init

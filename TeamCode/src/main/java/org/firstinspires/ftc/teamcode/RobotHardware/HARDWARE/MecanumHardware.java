@@ -1,8 +1,7 @@
-package org.firstinspires.ftc.teamcode.RobotHardware;
+package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 
