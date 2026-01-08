@@ -30,7 +30,7 @@ public class FieldPosePresets {
     public static final Pose RED_FRONT_START = new Pose(88, 9, Math.toRadians(90));
     public static final Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
 
-    public static final Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(45));
+    public static final Pose RED_SCORE_POSE = new Pose(90, 80, Math.toRadians(45));
     public static final Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(180));
     public static final Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(104, 60, Math.toRadians(180));
     public static final Pose RED_PICKUP_BACK_SPIKE = new Pose(104, 84, Math.toRadians(180));

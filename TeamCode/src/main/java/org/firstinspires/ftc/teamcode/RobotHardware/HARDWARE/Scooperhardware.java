@@ -4,7 +4,7 @@ package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-public class ShootSequence {
+public class Scooperhardware {
 
     public Servo ballScoop;
 

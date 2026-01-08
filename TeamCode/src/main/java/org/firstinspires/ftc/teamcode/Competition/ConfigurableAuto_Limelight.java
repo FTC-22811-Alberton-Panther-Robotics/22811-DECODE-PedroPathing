@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.InDevelopment;
+package org.firstinspires.ftc.teamcode.Competition;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -62,7 +62,7 @@ public class ConfigurableAuto_Limelight extends OpMode {
         GO_TO_FRONT_SPIKE,
         GO_TO_MIDDLE_SPIKE,
         GO_TO_BACK_SPIKE,
-        INTAKE_CYCLE, // Perform the 3-pixel intake dance
+        //INTAKE_CYCLE, // Perform the 3-pixel intake dance
         SCORE,
         HIT_GATE,
         PARK
@@ -95,12 +95,12 @@ public class ConfigurableAuto_Limelight extends OpMode {
     private int pathState = 0;
 
     // --- Intake Cycle Specific Variables ---
-    private int intakeCycleBallCount = 0;
-    private List<Character> intakeColorOrder = new ArrayList<>();
+    //private int intakeCycleBallCount = 0;
+    //private List<Character> intakeColorOrder = new ArrayList<>();
     private final List<Character> SPIKE_FRONT_COLORS = Arrays.asList('G', 'P', 'P');
     private final List<Character> SPIKE_MIDDLE_COLORS = Arrays.asList('P', 'G', 'P');
     private final List<Character> SPIKE_BACK_COLORS = Arrays.asList('P', 'P', 'G');
-    private final double INTAKE_OFFSET_DISTANCE = 6.0;
+    //private final double INTAKE_OFFSET_DISTANCE = 6.0;
 
 
     @Override
@@ -258,38 +258,38 @@ public class ConfigurableAuto_Limelight extends OpMode {
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
             // --- Intake Cycle Sub-States (300-series) ---
-            case 300: // Start of the intake dance
-                intakeCycleBallCount = 0; // Reset ball count
-                setPathState(301);
-                break;
-            case 301: // Set diverter for the current ball
-                if (!actionManager.isBusy()) {
-                    char expectedColor = intakeColorOrder.get(intakeCycleBallCount);
-                    if (expectedColor == 'P') actionManager.setDiverterPurple(); else actionManager.setDiverterGreen();
-                    setPathState(302);
-                }
-                break;
-            case 302: // Start timed intake action
-                actionManager.startIntake();
-                setPathState(303);
-                break;
-            case 303: // Wait for intake to finish
-                if (!actionManager.isBusy()) {
-                    intakeCycleBallCount++;
-                    if (intakeCycleBallCount >= 3) { // Finished all 3 balls
-                        advanceToNextCommand();
-                    } else { // Move to the next ball
-                        double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
-                        Pose currentPose = follower.getPose();
-                        Pose nextBallPose = currentPose.plus(new Pose(0, offset, 0));
-                        // For the small strafe, we want to maintain our heading.
-                        Path pathToNextBall = new Path(new BezierLine(currentPose, nextBallPose));
-                        pathToNextBall.setConstantHeadingInterpolation(currentPose.getHeading());
-                        follower.followPath(pathToNextBall);
-                        setPathState(301); // Go back to set diverter for the next ball
-                    }
-                }
-                break;
+            //case 300: // Start of the intake dance
+                //intakeCycleBallCount = 0; // Reset ball count
+                //setPathState(301);
+                //break;
+//            case 301: // Set diverter for the current ball
+//                if (!actionManager.isBusy()) {
+//                    char expectedColor = intakeColorOrder.get(intakeCycleBallCount);
+//                    if (expectedColor == 'P') actionManager.setDiverterPurple(); else actionManager.setDiverterGreen();
+//                    setPathState(302);
+//                }
+//                break;
+//            case 302: // Start timed intake action
+//                actionManager.startIntake();
+//                setPathState(303);
+//                break;
+//            case 303: // Wait for intake to finish
+//                if (!actionManager.isBusy()) {
+//                    intakeCycleBallCount++;
+//                    if (intakeCycleBallCount >= 3) { // Finished all 3 balls
+//                        advanceToNextCommand();
+//                    } else { // Move to the next ball
+//                        double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
+//                        Pose currentPose = follower.getPose();
+//                        Pose nextBallPose = currentPose.plus(new Pose(0, offset, 0));
+//                        // For the small strafe, we want to maintain our heading.
+//                        Path pathToNextBall = new Path(new BezierLine(currentPose, nextBallPose));
+//                        pathToNextBall.setConstantHeadingInterpolation(currentPose.getHeading());
+//                        follower.followPath(pathToNextBall);
+//                        setPathState(301); // Go back to set diverter for the next ball
+//                    }
+//                }
+//                break;
 
             case -1: // DONE
             default: follower.breakFollowing(); break;
@@ -314,12 +314,12 @@ public class ConfigurableAuto_Limelight extends OpMode {
                 followPath(backSpike);
                 setPathState(2);
                 break;
-            case INTAKE_CYCLE:
-                if (currentSpikeContext == SpikeLocation.FRONT) intakeColorOrder = SPIKE_FRONT_COLORS;
-                else if (currentSpikeContext == SpikeLocation.MIDDLE) intakeColorOrder = SPIKE_MIDDLE_COLORS;
-                else intakeColorOrder = SPIKE_BACK_COLORS;
-                setPathState(300);
-                break;
+//            case INTAKE_CYCLE:
+//                if (currentSpikeContext == SpikeLocation.FRONT) intakeColorOrder = SPIKE_FRONT_COLORS;
+//                else if (currentSpikeContext == SpikeLocation.MIDDLE) intakeColorOrder = SPIKE_MIDDLE_COLORS;
+//                else intakeColorOrder = SPIKE_BACK_COLORS;
+//                setPathState(300);
+//                break;
             case SCORE:
                 followPath(scorePose);
                 setPathState(100);

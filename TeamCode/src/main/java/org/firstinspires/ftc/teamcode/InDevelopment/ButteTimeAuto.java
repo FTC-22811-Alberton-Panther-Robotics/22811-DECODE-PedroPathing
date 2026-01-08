@@ -12,16 +12,16 @@ import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 
 @Autonomous(name="ButteTimeAuto", group="01 Butte", preselectTeleOp="Butte2Controller")
 public class ButteTimeAuto extends OpMode{
-    LauncherHardware launcherHardware = new LauncherHardware();
-    IntakeHardware intakeHardware = new IntakeHardware();
+    //LauncherHardware launcherHardware = new LauncherHardware();
+    //IntakeHardware intakeHardware = new IntakeHardware();
     MecanumHardware mecanumHardware = new MecanumHardware();
     TransferHardware transferHardware = new TransferHardware();
     private ElapsedTime runtime = new ElapsedTime();
 
     @Override
     public void init(){
-        launcherHardware.init(hardwareMap);
-        intakeHardware.init(hardwareMap);
+//          LauncherHardware.init(hardwareMap);
+//        intakeHardware.init(hardwareMap);
         mecanumHardware.init(hardwareMap);
         transferHardware.init(hardwareMap);
         telemetry.addData("Status", "Initialized");
@@ -48,8 +48,8 @@ public class ButteTimeAuto extends OpMode{
         telemetry.update();
         mecanumHardware.stop();
         transferHardware.stop();
-        intakeHardware.stop();
-        launcherHardware.stop();
+//        RintakeHardware.stop();
+//        launcherHardware.stop();
 
     }
 
