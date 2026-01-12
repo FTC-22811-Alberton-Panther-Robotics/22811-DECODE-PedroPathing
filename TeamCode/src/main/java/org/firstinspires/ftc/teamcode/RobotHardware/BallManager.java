@@ -10,7 +10,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallDiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallTransfer;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.Scooperhardware;
@@ -21,31 +20,26 @@ public class BallManager {
     private final RobotHardwareContainer robot;
 
     private final Scooperhardware scooperHardware;
-    private final BallTransfer BallTransfer;
+    private final BallTransfer ballTransfer;
     private final IntakeHardware intake;
     private final BallDiverterHardware BallDiverterHardware;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;
-    // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.
-    private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
-    public BallManager(RobotHardwareContainer robot, Scooperhardware scooperhardware, BallTransfer ballTransfer, IntakeHardware intake, BallDiverterHardware ballDiverterHardware, LauncherHardware launcher, TransferHardware transfer, ColorDiverterHardware colorDiverter) {
-        this.robot = robot;
-        this.scooperHardware = scooperhardware;
-        this.BallTransfer = ballTransfer;
-        this.intake = intake;
-        BallDiverterHardware = ballDiverterHardware;
-        this.launcher = launcher;
-        this.transfer = transfer;
-        this.colorDiverter = colorDiverter;
+    public BallManager(RobotHardwareContainer robotContainer, Scooperhardware scooperHardware, BallTransfer ballTransfer) {
+        this.robot = robotContainer;
+        this.scooperHardware = scooperHardware;
+        this.ballTransfer = ballTransfer;
+        this.intake = robot.intake;
+        this.launcher = robot.launcher;
+        this.transfer = robot.transfer;
+        this.BallDiverterHardware = robot.ballDiverter;
     }
 
     public enum BallActions {
         IDLE,
-        INTAKING,
-        LAUNCHING_SPINUP,
-        LAUNCHING_FIRE,
+
         REVERSING,
         ACTION_COMPLETE,
         BALL_TRANSFER_RIGHT,
@@ -67,17 +61,10 @@ public class BallManager {
             case IDLE: case ACTION_COMPLETE: case REVERSING:
                 break; // No timed logic in these states
 
-            case INTAKING:
-                if (actionTimer.seconds() > 2.5) { // Tune this time
-                    stopAll();
-                    currentState = ACTION_COMPLETE;
-                }
-                break;
-
 
             case BALL_TRANSFER_LEFT:
                 if (actionTimer.seconds() > .5) {
-                    BallTransfer.leftRun();
+                    ballTransfer.leftRun();
                     currentState = BALL_SCOOP;
                 }
                 break;
@@ -85,7 +72,7 @@ public class BallManager {
             case BALL_TRANSFER_RIGHT:
                 if(actionTimer.seconds() > .5){
                     currentState = BALL_DIVERTER_GREEN;
-                    BallTransfer.rightRun();
+                    ballTransfer.rightRun();
                     currentState = BALL_SCOOP;
                 }
                 break;
@@ -116,18 +103,6 @@ public class BallManager {
 
     // ----- Public Methods to Trigger Actions -----
 
-    public void startIntake() {
-        if (isBusy()) return;
-        currentState = BallActions.INTAKING;
-        intake.run();
-        actionTimer.reset();
-    }
-
-    public void startLaunch() {
-        if (isBusy()) return;
-        currentState = BallActions.LAUNCHING_SPINUP;
-        launcher.spinUp();
-    }
 
     public void reverseAll() {
         currentState = BallActions.REVERSING;
@@ -138,19 +113,6 @@ public class BallManager {
 
     // --- New Safe Methods for Color Diverter ---
 
-    /** Safely sets the diverter gate to the PURPLE position. */
-    public void setDiverterPurple() {
-        if (colorDiverter != null) {
-            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.PURPLE);
-        }
-    }
-
-    /** Safely sets the diverter gate to the GREEN position. */
-    public void setDiverterGreen() {
-        if (colorDiverter != null) {
-            colorDiverter.setPosition(ColorDiverterHardware.GatePosition.GREEN);
-        }
-    }
 
     public boolean isBusy() {
         return currentState != BallActions.IDLE && currentState != BallActions.ACTION_COMPLETE;

@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.InDevelopment;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.RobotHardware.BallManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
@@ -11,6 +12,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 public class Butte2Controller extends OpMode {
 
     RobotHardwareContainer robot;
+    BallManager ballManager;
     MecanumHardware mecanumHardware;
     LauncherHardware launcherHardware;
     private double flywheelRPMSpeed = 2400; // Start at default speed
