@@ -1,31 +1,41 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.ACTION_COMPLETE;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.BALL_DIVERTER_GREEN;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.BALL_SCOOP;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.BALL_SCOOP_RESET;
 import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.IDLE;
-import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.INTAKING;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallDiverterHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallTransfer;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.Scooperhardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 
 public class BallManager {
 
     private final RobotHardwareContainer robot;
 
-    private final BallTransferHardware BallTransfer;
+    private final Scooperhardware scooperHardware;
+    private final BallTransfer BallTransfer;
     private final IntakeHardware intake;
+    private final BallDiverterHardware BallDiverterHardware;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;
     // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.
     private final ColorDiverterHardware colorDiverter;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
-    public BallManager(RobotHardwareContainer robot, IntakeHardware intake, LauncherHardware launcher, TransferHardware transfer, ColorDiverterHardware colorDiverter) {
+    public BallManager(RobotHardwareContainer robot, Scooperhardware scooperhardware, BallTransfer ballTransfer, IntakeHardware intake, BallDiverterHardware ballDiverterHardware, LauncherHardware launcher, TransferHardware transfer, ColorDiverterHardware colorDiverter) {
         this.robot = robot;
+        this.scooperHardware = scooperhardware;
+        this.BallTransfer = ballTransfer;
         this.intake = intake;
+        BallDiverterHardware = ballDiverterHardware;
         this.launcher = launcher;
         this.transfer = transfer;
         this.colorDiverter = colorDiverter;
@@ -42,6 +52,8 @@ public class BallManager {
         BALL_TRANSFER_LEFT,
         BALL_SCOOP,
         BALL_SCOOP_RESET,
+        BALL_DIVERTER_PURPLE,
+        BALL_DIVERTER_GREEN,
 
 
     }
@@ -62,32 +74,43 @@ public class BallManager {
                 }
                 break;
 
-//            case LAUNCHING_SPINUP:
-//                if (launcher.isAtTargetSpeed()) {
-//                    transfer.run();
-//                    actionTimer.reset();
-//                    currentState = BallActions.LAUNCHING_FIRE;
-//                }
-//                break;
-
-//            case LAUNCHING_FIRE:
-//                if (actionTimer.seconds() > 2.0) { // Tune this time
-//                    stopAll();
-//                    currentState = BallActions.ACTION_COMPLETE;
-//                }
-//                break;
 
             case BALL_TRANSFER_LEFT:
-                if(){
-
+                if (actionTimer.seconds() > .5) {
+                    BallTransfer.leftRun();
+                    currentState = BALL_SCOOP;
                 }
                 break;
 
             case BALL_TRANSFER_RIGHT:
-                if(){
-
+                if(actionTimer.seconds() > .5){
+                    currentState = BALL_DIVERTER_GREEN;
+                    BallTransfer.rightRun();
+                    currentState = BALL_SCOOP;
                 }
                 break;
+
+            case BALL_SCOOP:
+                scooperHardware.ballUp();
+                currentState = BALL_SCOOP_RESET;
+                break;
+
+            case BALL_SCOOP_RESET:
+                scooperHardware.ballDown();
+                currentState = ACTION_COMPLETE;
+                break;
+
+
+            case BALL_DIVERTER_GREEN:
+                BallDiverterHardware.greenBall();
+
+                break;
+
+            case BALL_DIVERTER_PURPLE:
+
+                BallDiverterHardware.purpleBall();
+            break;
+
         }
     }
 

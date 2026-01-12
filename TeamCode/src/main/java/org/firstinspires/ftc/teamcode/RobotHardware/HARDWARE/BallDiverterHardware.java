@@ -12,18 +12,18 @@ public class BallDiverterHardware {
     stop();
     }
 
-    public void GREEN_BALL(){
+    public void greenBall(){
         ballDiverterServo.setPosition(0);
 
 
     }
 
-    public void PURPLE_BALL(){
+    public void purpleBall(){
     ballDiverterServo.setPosition(1);
 
     }
 
-    public void MIDSTOW(){
+    public void midStow(){
     ballDiverterServo.setPosition(.5);
 
     }

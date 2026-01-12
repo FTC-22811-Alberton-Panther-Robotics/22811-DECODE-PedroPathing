@@ -17,7 +17,7 @@ public class Scooperhardware {
         ballScoop.setPosition(1);
     }
     public void ballDown(){
-        ballScoop.setPosition(1);
+        ballScoop.setPosition(0);
     }
 
 
