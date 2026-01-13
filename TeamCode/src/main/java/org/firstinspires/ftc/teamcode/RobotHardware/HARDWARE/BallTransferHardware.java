@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-public class BallTransfer {
+public class BallTransferHardware {
     public Servo leftBallPusher;
     public Servo rightBallPusher;
     private double leftForward = 1.0; //TODO: set correctly

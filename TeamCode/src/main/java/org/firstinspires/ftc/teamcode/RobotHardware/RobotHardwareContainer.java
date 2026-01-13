@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallDiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
@@ -21,7 +21,7 @@ public class RobotHardwareContainer {
     // Publicly accessible hardware subsystem objects
 
     public final BallDiverterHardware ballDiverter;
-    public final IntakeHardware intake;
+    public final intakeHardware intake;
     public final LauncherHardware launcher;
     public final TransferHardware transfer;
     public final LimelightAprilTagLocalizer aprilTag;
@@ -36,7 +36,7 @@ public class RobotHardwareContainer {
     public RobotHardwareContainer(HardwareMap hardwareMap, Telemetry telemetry) {
         // Create instances of each hardware class
         ballDiverter = new BallDiverterHardware();
-        intake = new IntakeHardware();
+        intake = new intakeHardware();
         launcher = new LauncherHardware();
         transfer = new TransferHardware();
         

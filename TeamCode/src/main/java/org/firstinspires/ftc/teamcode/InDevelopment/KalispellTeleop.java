@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 @Disabled
 public class KalispellTeleop extends OpMode {
     LauncherHardware launcherHardware = new LauncherHardware();
-    IntakeHardware intakeHardware = new IntakeHardware();
+    intakeHardware intakeHardware = new intakeHardware();
     MecanumHardware mecanumHardware = new MecanumHardware();
     TransferHardware transferHardware = new TransferHardware();
     public boolean shootersOn = false;

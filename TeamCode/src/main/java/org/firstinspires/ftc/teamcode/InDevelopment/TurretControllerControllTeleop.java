@@ -1,10 +1,10 @@
 package org.firstinspires.ftc.teamcode.InDevelopment;
 
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TurretHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.Turrethardware;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -14,9 +14,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 public class TurretControllerControllTeleop extends OpMode{
 
 
-    TurretHardware turretHardware = new TurretHardware();
+    Turrethardware turretHardware = new Turrethardware();
     LauncherHardware launcherHardware = new LauncherHardware();
-    IntakeHardware intakeHardware = new IntakeHardware();
+    intakeHardware intakeHardware = new intakeHardware();
     MecanumHardware mecanumHardware = new MecanumHardware();
     TransferHardware transferHardware = new TransferHardware();
 

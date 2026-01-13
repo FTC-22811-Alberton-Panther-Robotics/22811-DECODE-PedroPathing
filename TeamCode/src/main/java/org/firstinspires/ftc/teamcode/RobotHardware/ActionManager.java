@@ -3,14 +3,14 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 
 public class ActionManager {
 
     private final RobotHardwareContainer robot;
-    private final IntakeHardware intake;
+    private final intakeHardware intake;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;
     // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.

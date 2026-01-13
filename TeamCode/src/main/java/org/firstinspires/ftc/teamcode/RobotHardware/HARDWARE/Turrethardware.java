@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-public class TurretHardware {
+public class Turrethardware {
     public DcMotorEx turretMotor = null;
     public DcMotorEx shooterMotor = null;
 
@@ -15,15 +15,12 @@ public class TurretHardware {
         shooterMotor = hardwareMap.get(DcMotorEx.class,"Shooter");
         turretMotor = hardwareMap.get(DcMotorEx.class, "turretMotor");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);/// FIND ACUTAL DIRICTION
-        turretMotor.setVelocity(0);
-        shooterMotor.setVelocity(0);
 
         stop();
     }
 
     ///  ** shooter control ** \\
-    public void shooterWoundUp(){
-        turretMotor.setVelocity(100.0);
+    public void shooterWoundUp(){shooterMotor.setVelocity(100.0);
     }
     /// ** turret control ** \\\
     public void rightSpin(){

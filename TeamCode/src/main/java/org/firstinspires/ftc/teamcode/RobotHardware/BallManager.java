@@ -2,32 +2,34 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.ACTION_COMPLETE;
 import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.BALL_SCOOP;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.GREEN_BALL_INTAKE;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.PURPLE_BALL_INTAKE;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.PURPLE_BALL_TRANSFER_LEFT;
+import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.GREEN_BALL_TRANSFER_RIGHT;
 import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActions.IDLE;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallDiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallTransfer;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.IntakeHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallTransferHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.Scooperhardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
 
 public class BallManager {
     private final RobotHardwareContainer robot;
-    private final Scooperhardware scooperHardware;
-    private final BallTransfer ballTransfer;
-    private final IntakeHardware intake;
+    private Scooperhardware scooperHardware;
+    private BallTransferHardware ballTransfer;
+    private final intakeHardware intake;
     private final BallDiverterHardware BallDiverterHardware;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;
     private final ElapsedTime actionTimer = new ElapsedTime();
 
 
-    public BallManager(RobotHardwareContainer robotContainer, Scooperhardware scooperHardware, BallTransfer ballTransfer) {
+    public BallManager(RobotHardwareContainer robotContainer) {
         this.robot = robotContainer;
-        this.scooperHardware = scooperHardware;
-        this.ballTransfer = ballTransfer;
         this.intake = robot.intake;
         this.launcher = robot.launcher;
         this.transfer = robot.transfer;
@@ -37,9 +39,11 @@ public class BallManager {
     public enum BallActions {
         IDLE,
         ACTION_COMPLETE,
-        BALL_TRANSFER_RIGHT,
-        BALL_TRANSFER_LEFT,
+        GREEN_BALL_TRANSFER_RIGHT,
+        PURPLE_BALL_TRANSFER_LEFT,
         BALL_SCOOP,
+        GREEN_BALL_INTAKE,
+        PURPLE_BALL_INTAKE,
     }
     private  BallActions  currentState = IDLE;
 
@@ -49,7 +53,24 @@ public class BallManager {
                 break; // No timed logic in these states
 
 
-            case BALL_TRANSFER_LEFT:
+            case GREEN_BALL_INTAKE:
+                BallDiverterHardware.greenBall();
+                intake.run();
+                if (actionTimer.seconds() > .5){
+                   intake.stop();
+                   currentState = ACTION_COMPLETE;
+                }
+
+
+            case PURPLE_BALL_INTAKE:
+                 BallDiverterHardware.purpleBall();
+                 intake.run();
+                if (actionTimer.seconds() > .5){
+                    intake.stop();
+                    currentState = ACTION_COMPLETE;
+                }
+
+            case PURPLE_BALL_TRANSFER_LEFT:
                 ballTransfer.leftTransfer();
                 if (actionTimer.seconds() > .5) {
                     ballTransfer.leftReturn();
@@ -57,7 +78,7 @@ public class BallManager {
                 }
                 break;
 
-            case BALL_TRANSFER_RIGHT:
+            case GREEN_BALL_TRANSFER_RIGHT:
                 ballTransfer.rightTransfer();
                 if(actionTimer.seconds() > .5){
                     ballTransfer.rightReturn();
@@ -76,6 +97,27 @@ public class BallManager {
 
 
         }
+    }
+
+    public void greenBallShoot(){
+        if (isBusy()) return;
+        currentState = GREEN_BALL_TRANSFER_RIGHT;
+    }
+    public void purpleBallShoot(){
+        if (isBusy()) return;
+        currentState = PURPLE_BALL_TRANSFER_LEFT;
+    }
+
+    public void diverterPurple(){
+        if (isBusy()) return;
+        currentState = PURPLE_BALL_INTAKE;
+
+
+    }
+
+    public void diverterGREEN(){
+        if (isBusy()) return;
+        currentState = GREEN_BALL_INTAKE;
     }
 
     // ----- Public Methods to Trigger Actions -----
