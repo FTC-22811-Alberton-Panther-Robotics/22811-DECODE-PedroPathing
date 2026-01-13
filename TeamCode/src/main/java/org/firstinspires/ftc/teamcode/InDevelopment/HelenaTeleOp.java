@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.InDevelopment;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
@@ -25,7 +26,6 @@ public class HelenaTeleOp {
     private boolean dpad_down_pressed = false;
 
     public void init() {
-        ballManager = new BallManager();
         actionManager = new ActionManager(robot);
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         mecanumHardware = new MecanumHardware();
@@ -35,9 +35,6 @@ public class HelenaTeleOp {
     }
 
     public void loop(){
-
-
-
 
 
     }
