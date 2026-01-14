@@ -12,8 +12,8 @@ public class Turrethardware {
 
 
     public void init(HardwareMap hardwareMap){
-        shooterMotor = hardwareMap.get(DcMotorEx.class,"Shooter");
-        turretMotor = hardwareMap.get(DcMotorEx.class, "turretMotor");
+        shooterMotor = hardwareMap.get(DcMotorEx.class,"shooter");
+        turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);/// FIND ACUTAL DIRICTION
 
         stop();

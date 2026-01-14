@@ -40,6 +40,7 @@ public class HelenaTeleOp extends OpMode {
         actionManager = new ActionManager(robot);
         follower = Constants.createFollower(hardwareMap, robot.localizer);
         driveHelper = new DriverAssist(follower);
+        ballManager = new BallManager(robot);
 
         // --- Load State from Autonomous ---
         // This is the seamless handoff from Auto to TeleOp.
@@ -60,32 +61,75 @@ public class HelenaTeleOp extends OpMode {
     }
 
     public void loop(){
-        driveHelper.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, alliance);
-        BallSquencer();
+        follower.update();
+        actionManager.update();
+        ballManager.update();
+        driveHelper.update(-gamepad2.left_stick_y, gamepad2.left_stick_x, gamepad2.right_stick_x, alliance);
+        ManualControls();
+        updateButtonStates();
+        updateTelemetry();
 
     }
-
-    private void BallSquencer() {
+    private void ManualControls() {
         // gamepad 1 is for shooting and making shooter adustments
         // gamepad 2 is for driving and intaking balls for the shooter
         // TODO: PROGRAM THE SERVOS AND MAKE DRIVERS AWARE THAT THE RIGHT
         // TODO:: DIVERTER POSTITION IS FOR GREEN AND VISE VERSA
-     if(gamepad1.right_bumper){
-        ballManager.greenBallShoot();
-     } else if (gamepad1.right_bumper){
-         ballManager.purpleBallShoot();
-     }
-      if (gamepad1.right_trigger > .1){
-          turrethardware.rightSpin();
-      } else if (gamepad1.left_trigger > .1) {
-          turrethardware.leftSpin();
-      }
-        if(gamepad2.right_trigger > .1){
-         ballManager.diverterGREEN();
-     }else if (gamepad2.left_trigger > .1){
-         ballManager.diverterPurple();
-     }
+
+        // BALL SHOOTER GAMEPAD 1
+        if(gamepad1.right_bumper){
+            ballManager.greenBallShoot();
+        } else if (gamepad1.left_bumper){
+            ballManager.purpleBallShoot();
+        }
+        // AUTOMATIC SHOOTER SPIN
+        if (gamepad1.right_trigger > .1){
+            turrethardware.rightSpin();
+        } else if (gamepad1.left_trigger > .1) {
+            turrethardware.leftSpin();
+        }
+
+
+
+        // DIVERTER CODE GAMEPAD 2
+        if(gamepad2.right_bumper){
+            ballManager.diverterGREEN();
+        }else if (gamepad2.left_bumper){
+            ballManager.diverterPurple();
+        }
+
+        // INTAKE CODE GAMEPAD 2
+        if (gamepad2.right_trigger > 0.1) {
+            robot.intake.run();
+        } else if (gamepad2.left_trigger > 0.1) {
+            robot.intake.reverse();
+        } else {
+            robot.intake.stop();
+               }
     }
+    private void updateTelemetry() {
+        telemetry.addData("TeleOp State", currentState.toString());
+        telemetry.addData("Drive Mode", driveHelper.getMode());
+        telemetry.addData("Alliance", alliance.toString());
+        // Display the robot's current field-relative position from the fused localizer.
+        telemetry.addData("X", "%.2f", follower.getPose().getX());
+        telemetry.addData("Y", "%.2f", follower.getPose().getY());
+        telemetry.addData("H", "%.1f", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.update();
+    }
+
+
+    private void updateButtonStates() {
+        dpad_up_pressed = gamepad1.dpad_up;
+        dpad_down_pressed = gamepad1.dpad_down;
+        dpad_left_pressed = gamepad1.dpad_left;
+        dpad_right_pressed = gamepad1.dpad_right;
+        right_bumper_pressed = gamepad1.right_bumper;
+        y_pressed = gamepad1.y;
+        b_pressed = gamepad1.b;
+        x_pressed = gamepad1.x;
+    }
+
 
 
 

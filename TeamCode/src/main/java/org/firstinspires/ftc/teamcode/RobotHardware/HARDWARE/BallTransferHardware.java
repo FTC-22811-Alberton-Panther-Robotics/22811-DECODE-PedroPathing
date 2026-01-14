@@ -21,7 +21,6 @@ public class BallTransferHardware {
     public void leftReturn(){
         leftBallPusher.setPosition(leftBack);
     }
-
     public void rightTransfer() {
         rightBallPusher.setPosition(rightForward);
     }
