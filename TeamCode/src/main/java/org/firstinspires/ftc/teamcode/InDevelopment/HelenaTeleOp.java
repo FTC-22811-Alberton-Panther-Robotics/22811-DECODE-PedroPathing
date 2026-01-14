@@ -61,17 +61,15 @@ public class HelenaTeleOp extends OpMode {
 
     public void loop(){
         driveHelper.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, alliance);
-
+        BallSquencer();
 
     }
 
-    private void ControllerManager() {
-
+    private void BallSquencer() {
         // gamepad 1 is for shooting and making shooter adustments
         // gamepad 2 is for driving and intaking balls for the shooter
         // TODO: PROGRAM THE SERVOS AND MAKE DRIVERS AWARE THAT THE RIGHT
         // TODO:: DIVERTER POSTITION IS FOR GREEN AND VISE VERSA
-
      if(gamepad1.right_bumper){
         ballManager.greenBallShoot();
      } else if (gamepad1.right_bumper){
@@ -82,19 +80,31 @@ public class HelenaTeleOp extends OpMode {
       } else if (gamepad1.left_trigger > .1) {
           turrethardware.leftSpin();
       }
-
-
         if(gamepad2.right_trigger > .1){
          ballManager.diverterGREEN();
      }else if (gamepad2.left_trigger > .1){
          ballManager.diverterPurple();
      }
+    }
 
 
 
 
 
-        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
 
