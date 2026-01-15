@@ -50,7 +50,6 @@ public class ActionManager {
 
             case LAUNCHING_SPINUP:
                 if (launcher.isAtTargetSpeed()) {
-                    transfer.run();
                     actionTimer.reset();
                     currentState = ActionState.LAUNCHING_FIRE;
                 }
@@ -84,7 +83,6 @@ public class ActionManager {
         currentState = ActionState.REVERSING;
         intake.reverse();
         launcher.reverse();
-        transfer.reverse();
     }
 
     public boolean isBusy() {

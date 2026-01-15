@@ -287,7 +287,7 @@ public class ConfigurablePedroAuto extends OpMode {
                 break;
             case 20: // Wait for shooter to get to speed
                 if (actionTimer.seconds() > 1.0) {
-                    robot.transfer.run();
+//                    robot.transfer.run();
                     actionTimer.reset();
                     setActionState(21);
                 }

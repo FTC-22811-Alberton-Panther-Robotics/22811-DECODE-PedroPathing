@@ -23,12 +23,6 @@ public class HelenaTeleOp extends OpMode {
     private GameState.Alliance alliance;
     RobotHardwareContainer robot;
     MecanumHardware mecanumHardware;
-
-    private double flywheelRPMSpeed = 2400; // Start at default speed
-    private static final double RPM_ADJUST_RATE = 100; // How much to change speed by per press
-
-    private boolean dpad_up_pressed, dpad_down_pressed, dpad_left_pressed, dpad_right_pressed;
-    private boolean y_pressed, b_pressed, x_pressed, right_bumper_pressed;
     private enum TeleOpState { MANUAL, AUTO_PARK }
     private TeleOpState currentState = TeleOpState.MANUAL;
 
@@ -66,10 +60,9 @@ public class HelenaTeleOp extends OpMode {
         ballManager.update();
         driveHelper.update(-gamepad2.left_stick_y, gamepad2.left_stick_x, gamepad2.right_stick_x, alliance);
         ManualControls();
-        updateButtonStates();
         updateTelemetry();
-
     }
+
     private void ManualControls() {
         // gamepad 1 is for shooting and making shooter adustments
         // gamepad 2 is for driving and intaking balls for the shooter
@@ -82,15 +75,12 @@ public class HelenaTeleOp extends OpMode {
         } else if (gamepad1.left_bumper){
             ballManager.purpleBallShoot();
         }
-        // AUTOMATIC SHOOTER SPIN
+        // TURRET SPIN GAMEPAD 1
         if (gamepad1.right_trigger > .1){
             turrethardware.rightSpin();
         } else if (gamepad1.left_trigger > .1) {
             turrethardware.leftSpin();
         }
-
-
-
         // DIVERTER CODE GAMEPAD 2
         if(gamepad2.right_bumper){
             ballManager.diverterGREEN();
@@ -117,20 +107,6 @@ public class HelenaTeleOp extends OpMode {
         telemetry.addData("H", "%.1f", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.update();
     }
-
-
-    private void updateButtonStates() {
-        dpad_up_pressed = gamepad1.dpad_up;
-        dpad_down_pressed = gamepad1.dpad_down;
-        dpad_left_pressed = gamepad1.dpad_left;
-        dpad_right_pressed = gamepad1.dpad_right;
-        right_bumper_pressed = gamepad1.right_bumper;
-        y_pressed = gamepad1.y;
-        b_pressed = gamepad1.b;
-        x_pressed = gamepad1.x;
-    }
-
-
 
 
 

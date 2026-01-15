@@ -1,33 +1,34 @@
 package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
 
-import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 
 public class TransferHardware {
-    public CRServo transferServo;
+    public Servo rightTransfer;
+    public Servo leftTransfer;
+
     private static final double TRANSFER_POWER = 1.0;
+    private static final double RETURN = 0;
 
     public void init(HardwareMap hardwareMap){
-        transferServo = hardwareMap.get(CRServo.class, "transfer");
-        transferServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightTransfer = hardwareMap.get(Servo.class, "rightT ransfer");
+        leftTransfer = hardwareMap.get(Servo.class,"leftTransfer");
         stop(); // Ensure it's off at init
     }
 
     // --- Public Methods ---
 
     /** Runs the transfer to move pixels towards the launcher. */
-    public void run() {
-        transferServo.setPower(TRANSFER_POWER);
+    public void runRight() {
+        rightTransfer.setPosition(TRANSFER_POWER);
     }
-
-    /** Reverses the transfer. */
-    public void reverse() {
-        transferServo.setPower(-TRANSFER_POWER);
+    public void runLeft() {
+        leftTransfer.setPosition(TRANSFER_POWER);
     }
-
+    public void LeftTransferReturn(){leftTransfer.setPosition(RETURN);}
+    public void RightTransferReturn(){rightTransfer.setPosition(RETURN);}
     /** Stops the transfer. */
     public void stop() {
-        transferServo.setPower(0.0);
+        rightTransfer.setPosition(0.0);
     }
 }

@@ -193,7 +193,7 @@ public class TeleopWithActions extends OpMode {
         }
         // Manual override for the transfer belt is on 'Y'.
         else if (gamepad1.y && !y_pressed) {
-            robot.transfer.run();
+            robot.intake.run();
         } 
         // If no other actions are being commanded and the ActionManager is not busy, stop all motors.
         // This is a safety feature to prevent mechanisms from running indefinitely.
