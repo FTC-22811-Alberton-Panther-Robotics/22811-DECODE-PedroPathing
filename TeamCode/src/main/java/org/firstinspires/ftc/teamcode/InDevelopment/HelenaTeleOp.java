@@ -9,21 +9,21 @@ import org.firstinspires.ftc.teamcode.RobotHardware.BallManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.DriverAssist;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.Turrethardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TurretHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @TeleOp(name = "HelenaOpmode")
 public class HelenaTeleOp extends OpMode {
     BallManager ballManager;
-    Turrethardware turrethardware;
+    TurretHardware turretHardware;
     DriverAssist driveHelper;
     ActionManager actionManager;
     Follower follower;
     private GameState.Alliance alliance;
     RobotHardwareContainer robot;
     MecanumHardware mecanumHardware;
-    private enum TeleOpState { MANUAL, AUTO_PARK }
+    private enum TeleOpState { MANUAL}
     private TeleOpState currentState = TeleOpState.MANUAL;
 
 
@@ -64,22 +64,22 @@ public class HelenaTeleOp extends OpMode {
     }
 
     private void ManualControls() {
-        // gamepad 1 is for shooting and making shooter adustments
+        // gamepad 1 is for shooting and making shooter adjustments
         // gamepad 2 is for driving and intaking balls for the shooter
         // TODO: PROGRAM THE SERVOS AND MAKE DRIVERS AWARE THAT THE RIGHT
         // TODO:: DIVERTER POSTITION IS FOR GREEN AND VISE VERSA
 
         // BALL SHOOTER GAMEPAD 1
-        if(gamepad1.right_bumper){
+        if(gamepad1.rightBumperWasPressed()){
             ballManager.greenBallShoot();
-        } else if (gamepad1.left_bumper){
+        } else if (gamepad1.leftBumperWasPressed()){
             ballManager.purpleBallShoot();
         }
         // TURRET SPIN GAMEPAD 1
         if (gamepad1.right_trigger > .1){
-            turrethardware.rightSpin();
+            turretHardware.rightSpin(gamepad1.right_trigger);
         } else if (gamepad1.left_trigger > .1) {
-            turrethardware.leftSpin();
+            turretHardware.leftSpin(gamepad1.left_trigger);
         }
         // DIVERTER CODE GAMEPAD 2
         if(gamepad2.right_bumper){
@@ -95,7 +95,7 @@ public class HelenaTeleOp extends OpMode {
             robot.intake.reverse();
         } else {
             robot.intake.stop();
-               }
+        }
     }
     private void updateTelemetry() {
         telemetry.addData("TeleOp State", currentState.toString());
