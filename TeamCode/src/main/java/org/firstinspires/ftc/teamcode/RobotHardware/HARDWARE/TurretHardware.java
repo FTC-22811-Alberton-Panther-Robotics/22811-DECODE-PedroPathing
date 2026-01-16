@@ -16,12 +16,13 @@ public class TurretHardware {
     public DcMotorEx turretMotor = null;
     public DcMotorEx leftFlywheel = null;
     public DcMotorEx rightFlywheel = null;
-
-    // Proportional gain for the target-lock heading controller. This can be tuned.
-    private static final double HEADING_KP = 0.8;
+    private final double TURRET_GEAR_RATIO = 23.0/80;
+    private final double TURRET_TICKS_PER_DEGREE = ((1 + (46.0 /11)) * 28)/360 * TURRET_GEAR_RATIO;
     private final Follower follower;
+    public boolean validTargetSolution = false;
     public TurretHardware(Follower follower) {
         this.follower = follower;
+
     }
 
 
@@ -30,7 +31,8 @@ public class TurretHardware {
         rightFlywheel = hardwareMap.get(DcMotorEx.class,"rightFlywheel");
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);/// FIND ACTUAL DIRECTION
-
+        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         stop();
     }
 
@@ -59,13 +61,18 @@ public class TurretHardware {
 
         // But the robot's rotation is automatically handled by a P-controller to point at the goal.
         double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(alliance), robotHeading);
+        if (headingError > Math.PI){
+            headingError = Math.PI;
+            validTargetSolution = false;
+        } else if (headingError < -Math.PI){
+            headingError = -Math.PI;
+            validTargetSolution = false;
+        } else validTargetSolution = true;
+        int turretTargetPosition = (int) (headingError * Math.toRadians(TURRET_TICKS_PER_DEGREE) - Math.PI/2);
 
-        double turn = HEADING_KP * headingError;
-        turn = Math.max(-1.0, Math.min(1.0, turn)); // Clamp to valid power range.
-
+        turretMotor.setTargetPosition(turretTargetPosition);
         turretMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
+        turretMotor.setPower(1);
 
     }
 
