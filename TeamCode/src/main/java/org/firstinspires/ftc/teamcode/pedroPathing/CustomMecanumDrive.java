@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
 import static com.pedropathing.math.MathFunctions.findNormalizingScaling;
 
 import com.pedropathing.Drivetrain;
+import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -15,7 +16,37 @@ import java.util.List;
 
 public class CustomMecanumDrive extends Drivetrain {
 
-    private final Constants.CustomDriveConstants constants;
+    // Encapsulated constants class for the custom drivetrain
+    public static class CustomDriveConstants {
+        // Motor names in hardware configuration
+        public final String LEFT_FRONT_MOTOR_NAME = "leftFrontDrive";
+        public final String LEFT_BACK_MOTOR_NAME = "leftBackDrive";
+        public final String RIGHT_FRONT_MOTOR_NAME = "rightFrontDrive";
+        public final String RIGHT_BACK_MOTOR_NAME = "rightBackDrive";
+
+        // Motor directions that work for your robot
+        public final DcMotor.Direction LEFT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
+        public final DcMotor.Direction LEFT_BACK_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
+        public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
+        public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
+
+        public double X_VELOCITY = 58.291667307455704;
+        public double Y_VELOCITY = 58.291667307455704;
+
+        public final String VOLTAGE_SENSOR_NAME = "Control Hub";
+
+        private final double[] convertToPolar = Pose.cartesianToPolar(X_VELOCITY, -Y_VELOCITY);
+        public final Vector frontLeftVector = new Vector(convertToPolar[0], convertToPolar[1]).normalize();
+
+        public double maxPower = 1.0;
+        public double motorCachingThreshold = 0.01;
+        public boolean useBrakeModeInTeleOp = false;
+        public boolean useVoltageCompensation = false;
+        public double nominalVoltage = 12.0;
+        public double staticFrictionCoefficient = 0.1;
+    }
+
+    private final CustomDriveConstants constants;
     private final DcMotorEx leftFront, leftRear, rightFront, rightRear;
     private final List<DcMotorEx> motors;
     private final VoltageSensor voltageSensor;
@@ -23,7 +54,7 @@ public class CustomMecanumDrive extends Drivetrain {
     private boolean useBrakeModeInTeleOp;
     private double staticFrictionCoefficient;
 
-    public CustomMecanumDrive(HardwareMap hardwareMap, Constants.CustomDriveConstants constants) {
+    public CustomMecanumDrive(HardwareMap hardwareMap, CustomDriveConstants constants) {
         this.constants = constants;
 
         this.maxPowerScaling = constants.maxPower;
@@ -49,21 +80,14 @@ public class CustomMecanumDrive extends Drivetrain {
         setMotorsToFloat();
         breakFollowing();
 
-        // This section defines the physical reality of the drive wheels for the library's math.
-        // The `vectors` array holds the direction of force each wheel exerts when spun forward.
-        Vector standardVector = constants.frontLeftVector.normalize();
-        Vector oppositeVector = new Vector(standardVector.getMagnitude(), 2 * Math.PI - standardVector.getTheta());
+        Vector copiedFrontLeftVector = constants.frontLeftVector.normalize();
+        Vector oppositeVector = new Vector(copiedFrontLeftVector.getMagnitude(), 2 * Math.PI - copiedFrontLeftVector.getTheta());
 
-        // THE FIX for incorrect strafing:
-        // Your robot's behavior indicates a non-standard drive configuration where the
-        // right-side wheels need their strafe behavior inverted. In the library's vector math,
-        // the way to "flip the negative for strafe" is to swap the force vectors for the right wheels.
-        // This change tells the complex math the truth about how your specific robot hardware behaves.
         vectors = new Vector[]{
-                standardVector, // Left Front (Standard)
-                oppositeVector, // Left Rear (Standard)
-                standardVector, // Right Front (CHANGED from oppositeVector to fix your robot's strafing)
-                oppositeVector  // Right Rear (CHANGED from standardVector to fix your robot's strafing)
+                copiedFrontLeftVector,
+                oppositeVector,
+                copiedFrontLeftVector,
+                oppositeVector
         };
     }
 
@@ -82,9 +106,6 @@ public class CustomMecanumDrive extends Drivetrain {
 
     @Override
     public double[] calculateDrive(Vector correctivePower, Vector headingPower, Vector pathingPower, double robotHeading) {
-        // This method is a direct, faithful adaptation of the official PedroPathing Mecanum.java source code.
-
-        // --- Step 1: Clamp all incoming power vectors ---
         if (correctivePower.getMagnitude() > maxPowerScaling) correctivePower.setMagnitude(maxPowerScaling);
         if (headingPower.getMagnitude() > maxPowerScaling) headingPower.setMagnitude(maxPowerScaling);
         if (pathingPower.getMagnitude() > maxPowerScaling) pathingPower.setMagnitude(maxPowerScaling);
@@ -93,7 +114,6 @@ public class CustomMecanumDrive extends Drivetrain {
         Vector[] mecanumVectorsCopy = new Vector[4];
         Vector[] truePathingVectors = new Vector[2];
 
-        // --- Step 2: Combine all power vectors ---
         if (correctivePower.getMagnitude() == maxPowerScaling) {
             truePathingVectors[0] = correctivePower.copy();
             truePathingVectors[1] = correctivePower.copy();
@@ -120,23 +140,19 @@ public class CustomMecanumDrive extends Drivetrain {
             }
         }
 
-        // --- Step 3: Scale up the final left and right target vectors ---
         truePathingVectors[0] = truePathingVectors[0].times(2.0);
         truePathingVectors[1] = truePathingVectors[1].times(2.0);
 
-        // --- Step 4: Rotate the physical wheel force vectors to match the robot's current heading. ---
         for (int i = 0; i < mecanumVectorsCopy.length; i++) {
             mecanumVectorsCopy[i] = vectors[i].copy();
             mecanumVectorsCopy[i].rotateVector(robotHeading);
         }
 
-        // --- Step 5: The core of the math. ---
         wheelPowers[0] = (mecanumVectorsCopy[1].getXComponent() * truePathingVectors[0].getYComponent() - truePathingVectors[0].getXComponent() * mecanumVectorsCopy[1].getYComponent()) / (mecanumVectorsCopy[1].getXComponent() * mecanumVectorsCopy[0].getYComponent() - mecanumVectorsCopy[0].getXComponent() * mecanumVectorsCopy[1].getYComponent());
         wheelPowers[1] = (mecanumVectorsCopy[0].getXComponent() * truePathingVectors[0].getYComponent() - truePathingVectors[0].getXComponent() * mecanumVectorsCopy[0].getYComponent()) / (mecanumVectorsCopy[0].getXComponent() * mecanumVectorsCopy[1].getYComponent() - mecanumVectorsCopy[1].getXComponent() * mecanumVectorsCopy[0].getYComponent());
         wheelPowers[2] = (mecanumVectorsCopy[3].getXComponent() * truePathingVectors[1].getYComponent() - truePathingVectors[1].getXComponent() * mecanumVectorsCopy[3].getYComponent()) / (mecanumVectorsCopy[3].getXComponent() * mecanumVectorsCopy[2].getYComponent() - mecanumVectorsCopy[2].getXComponent() * mecanumVectorsCopy[3].getYComponent());
         wheelPowers[3] = (mecanumVectorsCopy[2].getXComponent() * truePathingVectors[1].getYComponent() - truePathingVectors[1].getXComponent() * mecanumVectorsCopy[2].getYComponent()) / (mecanumVectorsCopy[2].getXComponent() * mecanumVectorsCopy[3].getYComponent() - mecanumVectorsCopy[3].getXComponent() * mecanumVectorsCopy[2].getYComponent());
 
-        // --- Step 6: Apply voltage compensation if enabled. ---
         if (voltageCompensation) {
             double voltageNormalized = getVoltageNormalized();
             for (int i = 0; i < wheelPowers.length; i++) {
@@ -144,7 +160,6 @@ public class CustomMecanumDrive extends Drivetrain {
             }
         }
 
-        // --- Step 7: Normalize all wheel powers to ensure none exceed the maximum allowed power. ---
         double wheelPowerMax = 0;
         for (double power : wheelPowers) {
             if(Math.abs(power) > wheelPowerMax) wheelPowerMax = Math.abs(power);

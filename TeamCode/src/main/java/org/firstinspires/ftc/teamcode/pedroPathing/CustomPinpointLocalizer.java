@@ -11,13 +11,27 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 import java.util.ArrayDeque;
+import java.util.OptionalDouble;
 
 /**
  * A standalone dead-wheel localizer that correctly wraps the GoBildaPinpointDriver.
- * This class now trusts the internal fusion of the Pinpoint device and serves as a
- * proper Localizer implementation for Pedro Pathing.
+ * This class now contains its own constants for clean encapsulation.
  */
 public class CustomPinpointLocalizer implements Localizer {
+
+    /**
+     * Nested static class for all configuration specific to the Pinpoint hardware.
+     */
+    public static class CustomPinpointConstants {
+        public String hardwareMapName = "pinpoint";
+        public double forwardPodY = -8.5; // Y offset from center of rotation
+        public double strafePodX = 2.5;   // X offset from center of rotation
+        public double encoderResolution = GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
+        public GoBildaPinpointDriver.EncoderDirection forwardEncoderDirection = GoBildaPinpointDriver.EncoderDirection.REVERSED;
+        public GoBildaPinpointDriver.EncoderDirection strafeEncoderDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
+        public DistanceUnit distanceUnit = DistanceUnit.INCH;
+        public OptionalDouble yawScalar = OptionalDouble.empty(); // Only use if significant IMU drift is observed
+    }
 
     private final GoBildaPinpointDriver pinpointDriver;
     private final CustomPinpointConstants constants;
@@ -25,7 +39,6 @@ public class CustomPinpointLocalizer implements Localizer {
     private final AngleUnit angleUnit;
     private final UnnormalizedAngleUnit unnormalizedAngleUnit;
 
-    // Pose history for latency compensation, used by CombinedLocalizer
     private final ArrayDeque<PoseSnapshot> poseHistory = new ArrayDeque<>();
 
     public static class PoseSnapshot {
@@ -37,7 +50,6 @@ public class CustomPinpointLocalizer implements Localizer {
         }
     }
 
-    // CORRECTED: Constructor now accepts our custom constants class
     public CustomPinpointLocalizer(HardwareMap hardwareMap, CustomPinpointConstants constants) {
         this.constants = constants;
         pinpointDriver = hardwareMap.get(GoBildaPinpointDriver.class, constants.hardwareMapName);
@@ -46,12 +58,8 @@ public class CustomPinpointLocalizer implements Localizer {
         this.angleUnit = AngleUnit.RADIANS;
         this.unnormalizedAngleUnit = this.angleUnit.getUnnormalized();
 
-        // Configure the driver using the passed-in constants
         pinpointDriver.setOffsets(constants.strafePodX, constants.forwardPodY, this.distanceUnit);
-        pinpointDriver.setEncoderDirections(
-                constants.forwardEncoderDirection,
-                constants.strafeEncoderDirection
-        );
+        pinpointDriver.setEncoderDirections(constants.forwardEncoderDirection, constants.strafeEncoderDirection);
         pinpointDriver.setEncoderResolution(constants.encoderResolution);
         if (constants.yawScalar.isPresent()) {
             pinpointDriver.setYawScalar(constants.yawScalar.getAsDouble());

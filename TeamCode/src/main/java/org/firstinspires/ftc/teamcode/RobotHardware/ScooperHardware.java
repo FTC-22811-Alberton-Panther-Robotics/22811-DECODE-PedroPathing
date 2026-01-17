@@ -1,10 +1,10 @@
-package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
+package org.firstinspires.ftc.teamcode.RobotHardware;
 
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-public class Scooperhardware {
+public class ScooperHardware {
 
     public Servo ballScoop;
 

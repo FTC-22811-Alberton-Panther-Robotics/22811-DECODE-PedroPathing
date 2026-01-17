@@ -10,18 +10,11 @@ import static org.firstinspires.ftc.teamcode.RobotHardware.BallManager.BallActio
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallDiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.BallTransferHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.Scooperhardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
-
 public class BallManager {
     private final RobotHardwareContainer robot;
-    private Scooperhardware scooperHardware;
+    private ScooperHardware scooperHardware;
     private BallTransferHardware ballTransfer;
-    private final intakeHardware intake;
+    private final IntakeHardware intake;
     private final BallDiverterHardware BallDiverterHardware;
     private final LauncherHardware launcher;
     private final TransferHardware transfer;

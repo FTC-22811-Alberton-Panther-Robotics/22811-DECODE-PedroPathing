@@ -1,11 +1,11 @@
-package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
+package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-public class intakeHardware {
+public class IntakeHardware {
 
     private DcMotorEx intakeMotor = null;
     private static final double INTAKE_POWER = 1.0;

@@ -2,101 +2,141 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
-
+/**
+ * ActionManager is the definitive, unified class for controlling all robot mechanisms.
+ * It is built as a state machine to handle complex, multi-step sequences like shooting and intaking.
+ * This replaces the previous BallManager and the old, broken ActionManager.
+ */
 public class ActionManager {
 
     private final RobotHardwareContainer robot;
-    private final intakeHardware intake;
-    private final LauncherHardware launcher;
-    private final TransferHardware transfer;
-    // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.
-    private final ColorDiverterHardware colorDiverter;
-    private final ElapsedTime actionTimer = new ElapsedTime();
+    private final ElapsedTime timer = new ElapsedTime();
 
     public enum ActionState {
         IDLE,
         INTAKING,
-        LAUNCHING_SPINUP,
-        LAUNCHING_FIRE,
-        REVERSING,
-        ACTION_COMPLETE,
-
+        SHOOT_TRANSFER_LEFT,
+        SHOOT_TRANSFER_RIGHT,
+        SHOOT_SCOOP,
+        WAITING_FOR_AUTO_ACTION // A generic state for simple, timed auto commands
     }
     private ActionState currentState = ActionState.IDLE;
 
-    public ActionManager(RobotHardwareContainer robotContainer) {
-        this.robot = robotContainer;
-        this.intake = robot.intake;
-        this.launcher = robot.launcher;
-        this.transfer = robot.transfer;
-        this.colorDiverter = robot.colorDiverter; // This can be null
+    public ActionManager(RobotHardwareContainer robot) {
+        this.robot = robot;
     }
 
+    /**
+     * This is the heart of the manager. It must be called in every loop of an OpMode.
+     */
     public void update() {
         switch (currentState) {
-            case IDLE: case ACTION_COMPLETE: case REVERSING:
-                break; // No timed logic in these states
+            case IDLE:
+                break;
+
+            case WAITING_FOR_AUTO_ACTION:
+                if (timer.seconds() > 1.5) { // Default time for simple auto actions
+                    stopAll();
+                }
+                break;
 
             case INTAKING:
-                if (actionTimer.seconds() > 2.5) { // Tune this time
-                    stopAll();
-                    currentState = ActionState.ACTION_COMPLETE;
+                if (timer.seconds() > 0.5) { // Run intake for a short burst
+                    robot.intake.stop();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case LAUNCHING_SPINUP:
-                if (launcher.isAtTargetSpeed()) {
-                    actionTimer.reset();
-                    currentState = ActionState.LAUNCHING_FIRE;
+            case SHOOT_TRANSFER_LEFT:
+                if (timer.seconds() > 0.5) {
+                    robot.ballTransfer.leftReturn();
+                    currentState = ActionState.SHOOT_SCOOP;
+                    timer.reset();
                 }
                 break;
 
-            case LAUNCHING_FIRE:
-                if (actionTimer.seconds() > 2.0) { // Tune this time
-                    stopAll();
-                    currentState = ActionState.ACTION_COMPLETE;
+            case SHOOT_TRANSFER_RIGHT:
+                if (timer.seconds() > 0.5) {
+                    robot.ballTransfer.rightReturn();
+                    currentState = ActionState.SHOOT_SCOOP;
+                    timer.reset();
+                }
+                break;
+
+            case SHOOT_SCOOP:
+                if (timer.seconds() > 0.67) {
+                    robot.scooper.ballDown();
+                    currentState = ActionState.IDLE;
                 }
                 break;
         }
     }
 
-    // ----- Public Methods to Trigger Actions -----
+    // ----- PUBLIC METHODS FOR TELEOP AND AUTO -----
 
-    public void startIntake() {
+    public void startGreenBallShoot() {
         if (isBusy()) return;
-        currentState = ActionState.INTAKING;
-        intake.run();
-        actionTimer.reset();
+        currentState = ActionState.SHOOT_TRANSFER_RIGHT;
+        robot.launcher.spinUp();
+        robot.ballTransfer.rightTransfer();
+        robot.scooper.ballUp();
+        timer.reset();
+    }
+
+    public void startPurpleBallShoot() {
+        if (isBusy()) return;
+        currentState = ActionState.SHOOT_TRANSFER_LEFT;
+        robot.launcher.spinUp();
+        robot.ballTransfer.leftTransfer();
+        robot.scooper.ballUp();
+        timer.reset();
+    }
+
+    public void setDiverterToGreen() {
+        if (robot.ballDiverter != null) {
+            robot.ballDiverter.greenBall();
+        }
+    }
+
+    public void setDiverterToPurple() {
+        if (robot.ballDiverter != null) {
+            robot.ballDiverter.purpleBall();
+        }
+    }
+
+    // Generic actions for the autonomous playlist
+    public void startIntake() {
+        if(isBusy()) return;
+        currentState = ActionState.WAITING_FOR_AUTO_ACTION;
+        robot.intake.run();
+        timer.reset();
     }
 
     public void startLaunch() {
         if (isBusy()) return;
-        currentState = ActionState.LAUNCHING_SPINUP;
-        launcher.spinUp();
+        currentState = ActionState.WAITING_FOR_AUTO_ACTION;
+        robot.launcher.spinUp();
+        timer.reset();
     }
 
-    public void reverseAll() {
-        currentState = ActionState.REVERSING;
-        intake.reverse();
-        launcher.reverse();
-    }
-
-    public boolean isBusy() {
-        return currentState != ActionState.IDLE && currentState != ActionState.ACTION_COMPLETE;
-    }
-
-    public void completeAction() {
-        currentState = ActionState.IDLE;
+    public void startSmartLaunch(GameState.ObeliskPattern pattern) {
+        // This can be expanded with pattern-specific logic
+        // For now, it defaults to a standard launch sequence.
+        if (isBusy()) return;
+        // This is just an example; you can call startPurpleBallShoot or startGreenBallShoot here.
+        startPurpleBallShoot(); 
     }
 
     public void stopAll() {
-        intake.stop();
-        launcher.stop();
-        transfer.stop();
+        robot.intake.stop();
+        robot.launcher.stop();
+        robot.ballTransfer.leftReturn();
+        robot.ballTransfer.rightReturn();
+        robot.scooper.ballDown();
         currentState = ActionState.IDLE;
+    }
+
+    public boolean isBusy() {
+        return currentState != ActionState.IDLE;
     }
 }

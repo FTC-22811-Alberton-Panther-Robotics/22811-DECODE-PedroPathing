@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE;
+package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;

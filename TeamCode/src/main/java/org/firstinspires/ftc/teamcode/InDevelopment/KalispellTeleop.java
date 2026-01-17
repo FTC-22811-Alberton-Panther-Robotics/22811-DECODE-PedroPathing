@@ -5,10 +5,10 @@
 //import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 //import com.qualcomm.robotcore.util.ElapsedTime;
 //
-//import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
-//import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
-//import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
-//import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
+//import org.firstinspires.ftc.teamcode.RobotHardware.intakeHardware;
+//import org.firstinspires.ftc.teamcode.RobotHardware.LauncherHardware;
+//import org.firstinspires.ftc.teamcode.RobotHardware.MecanumHardware;
+//import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
 //
 //@TeleOp(name="KalispellTeleop", group="01 Kalispell")
 //@Disabled
