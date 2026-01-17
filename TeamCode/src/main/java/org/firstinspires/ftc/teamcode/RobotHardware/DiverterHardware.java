@@ -6,21 +6,23 @@ import com.qualcomm.robotcore.hardware.Servo;
 /**
  * Hardware class for the color-sorting diverter gate servo.
  */
-public class ColorDiverterHardware {
+public class DiverterHardware {
 
     private Servo diverterServo;
 
     // Define the servo positions for each track. These are placeholders and must be tuned.
     public static final double PURPLE_TRACK_POSITION = 0.0;
     public static final double GREEN_TRACK_POSITION = 1.0;
+    public static final double NEUTRAL_POSITION = 0.5; // Neutral position for clearing jams
 
     public enum GatePosition {
         PURPLE,  // Directs artifacts to the left track
-        GREEN  // Directs artifacts to the right track
+        GREEN,   // Directs artifacts to the right track
+        NEUTRAL
     }
 
     public void init(HardwareMap hardwareMap) {
-        diverterServo = hardwareMap.get(Servo.class, "colorDiverter");
+        diverterServo = hardwareMap.get(Servo.class, "diverter");
     }
 
     /**
@@ -28,10 +30,21 @@ public class ColorDiverterHardware {
      * @param position The target position (PURPLE or GREEN).
      */
     public void setPosition(GatePosition position) {
-        if (position == GatePosition.PURPLE) {
-            diverterServo.setPosition(PURPLE_TRACK_POSITION);
-        } else {
-            diverterServo.setPosition(GREEN_TRACK_POSITION);
+        switch (position) {
+            case PURPLE:
+                diverterServo.setPosition(PURPLE_TRACK_POSITION);
+                break;
+            case GREEN:
+                diverterServo.setPosition(GREEN_TRACK_POSITION);
+                break;
+            case NEUTRAL:
+                diverterServo.setPosition(NEUTRAL_POSITION);
+                break;
         }
+    }
+
+    /** Sets the diverter to the neutral position, typically for clearing jams. */
+    public void setNeutral() {
+        setPosition(GatePosition.NEUTRAL);
     }
 }

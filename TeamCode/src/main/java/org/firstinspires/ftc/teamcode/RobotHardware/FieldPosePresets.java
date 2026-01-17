@@ -45,4 +45,8 @@ public class FieldPosePresets {
     public static Pose BLUE_BASE = new Pose(12, 12, Math.toRadians(180));
     public static Pose RED_BASE = new Pose(132, 12, Math.toRadians(0));
 
+    // ========== GOAL TARGETS FOR AIMING ==========
+    public static Pose BLUE_GOAL_TARGET = new Pose(13, 136, 0);
+    public static Pose RED_GOAL_TARGET = new Pose(131, 136, 0);
+
 }

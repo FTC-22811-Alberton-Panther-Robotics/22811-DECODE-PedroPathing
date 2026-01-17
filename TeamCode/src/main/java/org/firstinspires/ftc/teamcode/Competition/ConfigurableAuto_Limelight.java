@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-@Autonomous(name = "ConfigurableAuto Limelight", group = "01 Helena", preselectTeleOp = "TeleopManualControls")
+@Autonomous(name = "ConfigurableAuto Limelight", group = "01 Helena", preselectTeleOp = "HelenaTeleOp")
 public class ConfigurableAuto_Limelight extends OpMode {
 
     // ========== CONFIGURATION ==========
@@ -50,7 +50,7 @@ public class ConfigurableAuto_Limelight extends OpMode {
     private boolean dpad_up_down_pressed, dpad_left_right_pressed, bumper_pressed, a_pressed, y_pressed, x_pressed, b_pressed;
     private boolean playlistFinalized = false;
 
-    // ========== OPMODE MEMBERS ==========
+    // ========== OPMODE MEMBERS ========== 
     private Follower follower;
     private ElapsedTime timer = new ElapsedTime();
     private RobotHardwareContainer robot;
@@ -72,9 +72,10 @@ public class ConfigurableAuto_Limelight extends OpMode {
     @Override
     public void init() {
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
+        follower = Constants.createFollower(hardwareMap, robot);
+        robot.initTurret(follower, hardwareMap);
+        robot.initLauncher(follower, robot.turret, hardwareMap); // CORRECTED: Initialize launcher system
         actionManager = new ActionManager(robot);
-        // CORRECTED: The createFollower method now only needs hardwareMap and telemetry.
-        follower = Constants.createFollower(hardwareMap, telemetry);
 
         telemetry.addLine("--- Playlist Autonomous Builder ---");
         telemetry.addLine("D-Pad U/D: Alliance | Bumpers: Start Pos");
@@ -121,6 +122,7 @@ public class ConfigurableAuto_Limelight extends OpMode {
 
     @Override
     public void start() {
+        robot.turret.calibrate();
         calculatePoses();
         follower.setStartingPose(startPose);
         currentCommandIndex = 0;
@@ -136,6 +138,8 @@ public class ConfigurableAuto_Limelight extends OpMode {
     public void loop() {
         follower.update();
         actionManager.update();
+        robot.turret.update(alliance); // CORRECTED: Update turret and launcher systems
+        robot.launcher.update();
         updatePath();
         updateTelemetry();
     }
@@ -221,7 +225,13 @@ public class ConfigurableAuto_Limelight extends OpMode {
     }
 
     private void followPath(Pose targetPose) {
-        follower.followPath(new Path(new BezierLine(follower.getPose(), targetPose)));
+        Pose currentPose = follower.getPose();
+        // On the first loop, the Follower's pose might be null. 
+        // In that case, we use the known startPose for the path's beginning.
+        if (currentPose == null) {
+            currentPose = this.startPose;
+        }
+        follower.followPath(new Path(new BezierLine(currentPose, targetPose)));
     }
 
     private void setDiverterForIntake() {
@@ -242,7 +252,6 @@ public class ConfigurableAuto_Limelight extends OpMode {
     }
 
     private void readObeliskPattern() {
-        // CORRECTED: Use `robot.aprilTag` which is the correct name for the LimelightAprilTagLocalizer
         Optional<Integer> detectedId = robot.aprilTag.getDetectedTagId();
         if (detectedId.isPresent()) {
             GameState.setPatternFromAprilTagId(detectedId.get());

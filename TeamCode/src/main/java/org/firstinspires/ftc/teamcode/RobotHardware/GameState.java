@@ -9,11 +9,11 @@ import com.pedropathing.geometry.Pose;
 public class GameState {
 
     // Using enums for clarity and type safety.
-    public enum Alliance { BLUE, RED }
+    public enum Alliance { BLUE, RED, UNKNOWN }
     public enum ObeliskPattern { UNKNOWN, PATTERN_GPP, PATTERN_PGP, PATTERN_PPG }
 
     // The `volatile` keyword ensures that changes are immediately visible across OpModes.
-    public static volatile Alliance alliance = Alliance.BLUE;
+    public static volatile Alliance alliance = Alliance.UNKNOWN;
     public static volatile ObeliskPattern obeliskPattern = ObeliskPattern.UNKNOWN;
     public static volatile Pose currentPose = null; // To store the robot's pose at the end of auto
 

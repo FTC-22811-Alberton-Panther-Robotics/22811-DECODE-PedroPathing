@@ -35,7 +35,7 @@ public class MecanumHardware {
 
         RevHubOrientationOnRobot RevHubOrientation = new RevHubOrientationOnRobot(
                 RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD);
+                RevHubOrientationOnRobot.UsbFacingDirection.UP);
 
         imu.initialize(new IMU.Parameters(RevHubOrientation));
     }
@@ -43,8 +43,8 @@ public class MecanumHardware {
 
         double leftFrontPower = forward + strafe + turn;
         double leftBackPower = forward - strafe + turn;
-        double rightFrontPower = forward + strafe - turn;
-        double rightBackPower = forward - strafe - turn;
+        double rightFrontPower = forward - strafe - turn;
+        double rightBackPower = forward + strafe - turn;
 
         leftFrontDrive.setPower(leftFrontPower);
         rightFrontDrive.setPower(rightFrontPower);

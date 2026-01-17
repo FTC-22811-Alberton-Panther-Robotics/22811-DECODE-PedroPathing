@@ -56,11 +56,16 @@ public class LimelightAprilTagLocalizer {
         try {
             limelight = hardwareMap.get(Limelight3A.class, "limelight");
             limelight.pipelineSwitch(0);
-            telemetry.addLine("Limelight Initialized Successfully");
+            if (telemetry != null) telemetry.addLine("Limelight Initialized Successfully");
         } catch (Exception e) {
             limelight = null;
-            telemetry.addLine("!!! LIMELIGHT NOT FOUND - CHECK CONFIGURATION !!!");
+            if (telemetry != null) telemetry.addLine("!!! LIMELIGHT NOT FOUND - CHECK CONFIGURATION !!!");
         }
+    }
+
+    // Overloaded method for initialization without telemetry
+    public void init(HardwareMap hardwareMap) {
+        this.init(hardwareMap, null);
     }
 
     /**
@@ -78,12 +83,12 @@ public class LimelightAprilTagLocalizer {
         if (result != null && result.isValid()) {
             if (!result.getFiducialResults().isEmpty()) {
                 int detectedId = result.getFiducialResults().get(0).getFiducialId();
-                telemetry.addData("Limelight Detected ID", detectedId);
+                if (telemetry != null) telemetry.addData("Limelight Detected ID", detectedId);
                 return Optional.of(detectedId);
             }
         }
 
-        telemetry.addData("Limelight Detected ID", "None");
+        if (telemetry != null) telemetry.addData("Limelight Detected ID", "None");
         return Optional.empty();
     }
 
@@ -100,7 +105,7 @@ public class LimelightAprilTagLocalizer {
 
         // --- Enhanced Telemetry Logic ---
         if (result == null || !result.isValid()) {
-            telemetry.addLine("Limelight Result: INVALID or NULL");
+            if (telemetry != null) telemetry.addLine("Limelight Result: INVALID or NULL");
             lastSeenTagIds.clear();
         } else {
             // Record all tags seen in this frame.
@@ -132,9 +137,11 @@ public class LimelightAprilTagLocalizer {
                     Pose pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE);
                     double latencySeconds = (result.getCaptureLatency() + result.getTargetingLatency()) / 1000.0;
                     
-                    telemetry.addData("Limelight Pose (X, Y, H)", "%.2f, %.2f, %.1f",
+                    if (telemetry != null) {
+                        telemetry.addData("Limelight Pose (X, Y, H)", "%.2f, %.2f, %.1f",
                             pedroPose.getX(), pedroPose.getY(), Math.toDegrees(pedroPose.getHeading()));
-                    telemetry.addData("Limelight Latency (s)", "%.3f", latencySeconds);
+                        telemetry.addData("Limelight Latency (s)", "%.3f", latencySeconds);
+                    }
                     
                     updateDebugTelemetry();
                     return Optional.of(new LimelightPoseData(pedroPose, latencySeconds));
@@ -142,7 +149,7 @@ public class LimelightAprilTagLocalizer {
             }
         }
 
-        telemetry.addLine("Limelight Pose: None (No valid GOAL tag found or bad botpose)");
+        if (telemetry != null) telemetry.addLine("Limelight Pose: None (No valid GOAL tag found or bad botpose)");
         updateDebugTelemetry();
         return Optional.empty();
     }
@@ -151,7 +158,9 @@ public class LimelightAprilTagLocalizer {
      * Helper method to send detailed debug information to telemetry every loop.
      */
     private void updateDebugTelemetry() {
-        telemetry.addData("LL Valid Poses Count", successfulPoseCalculations);
-        telemetry.addData("LL Last Seen IDs", lastSeenTagIds.toString());
+        if (telemetry != null) {
+            telemetry.addData("LL Valid Poses Count", successfulPoseCalculations);
+            telemetry.addData("LL Last Seen IDs", lastSeenTagIds.toString());
+        }
     }
 }

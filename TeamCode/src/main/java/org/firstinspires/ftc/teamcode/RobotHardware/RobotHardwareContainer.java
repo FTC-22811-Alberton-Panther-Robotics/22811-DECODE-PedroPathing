@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
+import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Localizer;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -14,11 +15,12 @@ public class RobotHardwareContainer {
 
     // Publicly accessible hardware subsystem objects
     public final IntakeHardware intake;
-    public final LauncherHardware launcher;
-    public final BallDiverterHardware ballDiverter;
-    public final BallTransferHardware ballTransfer;
-    public final ScooperHardware scooper;
-    public final ColorDiverterHardware colorDiverter; // No longer nullable
+    public LauncherHardware launcher;
+    public final TransferHardware transfer;
+    public final ScoopHardware scoop;
+    public final DiverterHardware diverter;
+    public TurretHardware turret;
+    public final MecanumHardware mecanumDrive; // Added MecanumHardware
 
     // Localizers for Pedro Pathing
     public final LimelightAprilTagLocalizer aprilTag;
@@ -28,27 +30,34 @@ public class RobotHardwareContainer {
     public RobotHardwareContainer(HardwareMap hardwareMap, Telemetry telemetry) {
         // Create instances of each hardware class
         intake = new IntakeHardware();
-        launcher = new LauncherHardware();
-        ballDiverter = new BallDiverterHardware();
-        ballTransfer = new BallTransferHardware();
-        scooper = new ScooperHardware();
-        colorDiverter = new ColorDiverterHardware();
+        transfer = new TransferHardware();
+        scoop = new ScoopHardware();
+        diverter = new DiverterHardware();
+        mecanumDrive = new MecanumHardware(); // Instantiate MecanumHardware
 
-        // Create the two underlying localizers
+        // Create the two underlying localizers.
         aprilTag = new LimelightAprilTagLocalizer();
         aprilTag.init(hardwareMap, telemetry);
-        // CORRECTED: Initialize the pinpoint localizer with its own nested constants class.
         pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointLocalizer.CustomPinpointConstants());
 
-        // Create the CombinedLocalizer, which fuses the two data sources
+        // Create the CombinedLocalizer
         localizer = new CombinedLocalizer(pinpoint, aprilTag, telemetry);
 
-        // Call the init() method for each mechanical subsystem
+        // Initialize all mechanical subsystems
         intake.init(hardwareMap);
-        launcher.init(hardwareMap);
-        ballDiverter.init(hardwareMap);
-        ballTransfer.init(hardwareMap);
-        scooper.init(hardwareMap);
-        colorDiverter.init(hardwareMap);
+        transfer.init(hardwareMap);
+        scoop.init(hardwareMap);
+        diverter.init(hardwareMap);
+        mecanumDrive.init(hardwareMap); // Initialize MecanumHardware
+    }
+
+    public void initTurret(Follower follower, HardwareMap hardwareMap) {
+        this.turret = new TurretHardware(follower);
+        this.turret.init(hardwareMap);
+    }
+
+    public void initLauncher(Follower follower, TurretHardware turret, HardwareMap hardwareMap) {
+        this.launcher = new LauncherHardware(follower, turret);
+        this.launcher.init(hardwareMap);
     }
 }

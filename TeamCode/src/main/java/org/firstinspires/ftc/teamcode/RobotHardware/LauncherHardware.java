@@ -1,20 +1,34 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class LauncherHardware {
 
-    private DcMotorEx leftFlywheel = null;
-    private DcMotorEx rightFlywheel = null;
+    private DcMotorEx leftFlywheel;
+    private DcMotorEx rightFlywheel;
+    private final Follower follower;
+    private final TurretHardware turret;
 
-    // These should be tuned for your robot
-    public static final double TARGET_RPM = 2500; // The desired RPM for scoring
-    public static final double RPM_TOLERANCE = 50; // Allowable error in RPM
-    public static final double MAX_RPM = 6000; // Maximum RPM for the launcher
+    // --- Tunable Constants for Automatic Speed Control ---
+    public static double MIN_SHOT_DISTANCE = 36; // Inches
+    public static double MAX_SHOT_DISTANCE = 120; // Inches
+    public static double MIN_SHOT_VELOCITY = 2000; // RPM
+    public static double MAX_SHOT_VELOCITY = 3500; // RPM
+    private static final double MANUAL_VELOCITY_INCREMENT = 100; // RPM per bumper press
 
-    public static final double TICKS_PER_REV = 28;
+    // --- State Variables ---
+    private double manualVelocityOffset = 0.0;
+    private double currentTargetVelocity = 0.0;
+    private boolean isLauncherOn = false; // Default to off
+
+    public LauncherHardware(Follower follower, TurretHardware turret) {
+        this.follower = follower;
+        this.turret = turret;
+    }
 
     public void init(HardwareMap hardwareMap) {
         leftFlywheel = hardwareMap.get(DcMotorEx.class, "leftFlywheel");
@@ -25,70 +39,62 @@ public class LauncherHardware {
 
         leftFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        // Optional: Set custom PIDF coefficients if default tuning isn't good enough
-        // PIDFCoefficients pidf = new PIDFCoefficients(p, i, d, f);
-        // leftFlywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
-        // rightFlywheel.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, pidf);
-
-        leftFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFlywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
+        
         stop();
     }
 
-    // --- Public Methods ---
+    /**
+     * This is the main update loop for the launcher.
+     * It calculates the required flywheel speed based on distance and applies it.
+     */
+    public void update() {
+        if (!isLauncherOn) {
+            stop();
+            return;
+        }
 
-    public void setTargetRPM(double rpm) {
-        // This is a placeholder as TARGET_RPM is final. We need to change the implementation.
-        // The spinUp method should accept the RPM directly.
+        Pose robotPose = follower.getPose();
+        Pose targetGoal = turret.getTargetGoal();
+
+        if (robotPose == null || targetGoal == null) {
+            stop(); // Safety check
+            return;
+        }
+
+        double distanceToGoal = Math.hypot(targetGoal.getX() - robotPose.getX(), targetGoal.getY() - robotPose.getY());
+
+        double slope = (MAX_SHOT_VELOCITY - MIN_SHOT_VELOCITY) / (MAX_SHOT_DISTANCE - MIN_SHOT_DISTANCE);
+        double calculatedVelocity = MIN_SHOT_VELOCITY + slope * (distanceToGoal - MIN_SHOT_DISTANCE);
+        calculatedVelocity = Math.max(MIN_SHOT_VELOCITY, Math.min(MAX_SHOT_VELOCITY, calculatedVelocity));
+
+        this.currentTargetVelocity = calculatedVelocity + manualVelocityOffset;
+        setFlywheelVelocity(this.currentTargetVelocity);
     }
 
-// CORRECTED approach:
-// In LauncherHardware.java, change the spinUp() method to take a parameter.
-
-    /** Spins up the flywheels to the default target RPM. Used by ActionManager. */
-    public void spinUp() {
-        spinUp(TARGET_RPM); // Calls the other spinUp method with the default value
+    private void setFlywheelVelocity(double rpm) {
+        double ticksPerSecond = rpm * (28.0 / 60.0); // 28 ticks per rev for goBILDA motor
+        leftFlywheel.setVelocity(ticksPerSecond);
+        rightFlywheel.setVelocity(ticksPerSecond);
     }
 
-    /** Spins up the flywheels to a specific target RPM. Used by Classic TeleOp. */
-    public void spinUp(double targetRPM) {
-        double targetVelocity_TPS = (targetRPM * TICKS_PER_REV) / 60.0;
-        rightFlywheel.setVelocity(targetVelocity_TPS);
-        leftFlywheel.setVelocity(targetVelocity_TPS);
+    /** Toggles the launcher flywheels on or off. */
+    public void toggleLauncher() {
+        this.isLauncherOn = !this.isLauncherOn;
     }
 
-    /** Reverses the launcher to clear jams. */
-    public void reverse() {
-        // Use a low, constant velocity for reverse
-        rightFlywheel.setVelocity(-1000);
-        leftFlywheel.setVelocity(-1000);
+    /** Returns whether the launcher is currently on. */
+    public boolean isLauncherOn() {
+        return this.isLauncherOn;
     }
+
+    public void increaseManualOffset() { this.manualVelocityOffset += MANUAL_VELOCITY_INCREMENT; }
+    public void decreaseManualOffset() { this.manualVelocityOffset -= MANUAL_VELOCITY_INCREMENT; }
+    public void resetManualOffset() { this.manualVelocityOffset = 0.0; }
+    public double getCurrentTargetVelocity() { return isLauncherOn ? this.currentTargetVelocity : 0.0; }
 
     /** Stops the flywheels. */
     public void stop() {
         leftFlywheel.setVelocity(0);
         rightFlywheel.setVelocity(0);
-    }
-
-    /** Checks if both flywheels are at the target speed within tolerance. */
-    public boolean isAtTargetSpeed(double targetRPM) {
-        double leftError = Math.abs(targetRPM - getLeftFlywheelRPM());
-        double rightError = Math.abs(targetRPM - getRightFlywheelRPM());
-        return (leftError < RPM_TOLERANCE) && (rightError < RPM_TOLERANCE);
-    }
-
-    // And the default version for the ActionManager
-    public boolean isAtTargetSpeed() {
-        return isAtTargetSpeed(TARGET_RPM);
-    }
-
-    public double getLeftFlywheelRPM() {
-        return (leftFlywheel.getVelocity() * 60.0 / TICKS_PER_REV);
-    }
-
-    public double getRightFlywheelRPM(){
-        return (rightFlywheel.getVelocity() * 60.0 / TICKS_PER_REV);
     }
 }

@@ -16,7 +16,7 @@ public class CombinedLocalizer implements Localizer {
 
     private final CustomPinpointLocalizer pinpoint;
     private final LimelightAprilTagLocalizer limelight;
-    private final Telemetry telemetry;
+    private final Telemetry telemetry; // This can be null
 
     public CombinedLocalizer(CustomPinpointLocalizer pinpoint, LimelightAprilTagLocalizer limelight, Telemetry telemetry) {
         this.pinpoint = pinpoint;
@@ -24,19 +24,32 @@ public class CombinedLocalizer implements Localizer {
         this.telemetry = telemetry;
     }
 
+    // Overloaded constructor for when telemetry is not available
+    public CombinedLocalizer(CustomPinpointLocalizer pinpoint, LimelightAprilTagLocalizer limelight) {
+        this(pinpoint, limelight, null);
+    }
+
     @Override
     public void update() {
         pinpoint.update();
         Optional<LimelightAprilTagLocalizer.LimelightPoseData> limelightPoseData = limelight.getRobotPoseWithLatency();
+        
+        // CORRECTED: This is the definitive fix for the NullPointerException.
+        // We must ensure the pinpoint localizer has a valid pose before attempting a correction.
         if (limelightPoseData.isPresent()) {
-            LimelightAprilTagLocalizer.LimelightPoseData data = limelightPoseData.get();
-            Pose pinpointPoseAtLatency = pinpoint.getPoseAtLatency(data.latency);
-            // CORRECTED: Use plus() and minus() as per the provided Pose.java file
-            Pose error = data.pose.minus(pinpointPoseAtLatency);
-            Pose correctedPose = pinpoint.getPose().plus(error);
-            pinpoint.setPose(correctedPose);
-            pinpoint.clearPoseHistory();
-            telemetry.addData("Localization", "Applying vision correction.");
+            Pose currentPinpointPose = pinpoint.getPose();
+            Pose pinpointPoseAtLatency = pinpoint.getPoseAtLatency(limelightPoseData.get().latency);
+
+            // Only apply correction if both the current and historical pinpoint poses are valid.
+            if (currentPinpointPose != null && pinpointPoseAtLatency != null) {
+                Pose error = limelightPoseData.get().pose.minus(pinpointPoseAtLatency);
+                Pose correctedPose = currentPinpointPose.plus(error);
+                pinpoint.setPose(correctedPose);
+                pinpoint.clearPoseHistory();
+                if (telemetry != null) {
+                    telemetry.addData("Localization", "Applying vision correction.");
+                }
+            }
         }
     }
 

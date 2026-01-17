@@ -1,42 +1,58 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
+import com.pedropathing.localization.Localizer;
+import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 
 /**
- * This class centralizes the creation of the Follower object and all its dependencies.
- * By creating the entire hardware and localization stack here, we ensure that any
- * OpMode (Tuning, TeleOp, or Autonomous) gets a fully initialized Follower, resolving
- * potential NullPointerExceptions.
+ * This class centralizes the creation of the Follower object and its constants.
  */
 public class Constants {
 
+    // As per the documentation, define FollowerConstants and PathConstraints here.
+    public static FollowerConstants followerConstants = new FollowerConstants()
+            .mass(13.11); // Robot mass at 28.9 lbs, converted to kg.
+
+    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
+
     /**
-     * Creates and configures a Follower instance with a custom-fused localization stack.
+     * Overloaded method for creating a Follower with a specific Localizer. This is 
+     * specifically designed to support the library's internal Tuning OpMode without
+     * requiring modifications to that file.
+     */
+    public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
+        // If the localizer from Tuning.java is null, create a new default one on the fly.
+        if (localizer == null) {
+            CustomPinpointLocalizer pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointLocalizer.CustomPinpointConstants());
+            LimelightAprilTagLocalizer limelight = new LimelightAprilTagLocalizer();
+            limelight.init(hardwareMap);
+            localizer = new CombinedLocalizer(pinpoint, limelight);
+        }
+
+        return new FollowerBuilder(followerConstants, hardwareMap)
+                .setDrivetrain(new CustomMecanumDrive(hardwareMap, new CustomMecanumDrive.CustomDriveConstants()))
+                .setLocalizer(localizer)
+                .pathConstraints(pathConstraints)
+                .build();
+    }
+
+    /**
+     * Creates and configures a Follower instance for competition OpModes using the 
+     * centralized localizer from the RobotHardwareContainer.
      * @param hardwareMap The hardwareMap from the OpMode.
-     * @param telemetry The telemetry object from the OpMode, used for logging.
+     * @param robot The instance of the RobotHardwareContainer.
      * @return A fully initialized Follower instance.
      */
-    public static Follower createFollower(HardwareMap hardwareMap, Telemetry telemetry) {
-
-        // 1. Create the constants for the dead-wheel localizer
-        CustomPinpointConstants pinpointConstants = new CustomPinpointConstants();
-
-        // 2. Create the instances of our two underlying localizers
-        CustomPinpointLocalizer pinpointLocalizer = new CustomPinpointLocalizer(hardwareMap, pinpointConstants);
-        LimelightAprilTagLocalizer limelightLocalizer = new LimelightAprilTagLocalizer();
-        limelightLocalizer.init(hardwareMap, telemetry);
-
-        // 3. Create the CombinedLocalizer that fuses them together
-        CombinedLocalizer combinedLocalizer = new CombinedLocalizer(pinpointLocalizer, limelightLocalizer, telemetry);
-
-        // 4. Build the Follower, passing in our custom drivetrain and the fused localizer
-        return new FollowerBuilder(hardwareMap)
+    public static Follower createFollower(HardwareMap hardwareMap, RobotHardwareContainer robot) {
+        return new FollowerBuilder(followerConstants, hardwareMap)
                 .setDrivetrain(new CustomMecanumDrive(hardwareMap, new CustomMecanumDrive.CustomDriveConstants()))
-                .setLocalizer(combinedLocalizer)
+                .setLocalizer(robot.localizer) // Use the single source of truth
+                .pathConstraints(pathConstraints)
                 .build();
     }
 }

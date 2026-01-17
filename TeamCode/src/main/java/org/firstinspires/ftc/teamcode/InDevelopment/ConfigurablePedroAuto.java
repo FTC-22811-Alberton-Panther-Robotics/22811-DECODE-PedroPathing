@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
+import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -24,23 +25,22 @@ public class ConfigurablePedroAuto extends OpMode {
     RobotHardwareContainer robot;
     ActionManager actionManager; // The new, unified action manager
 
-    // ========== CONFIGURABLE SETTINGS ==========
-    private enum Alliance { RED, BLUE }
+    // ========== CONFIGURABLE SETTINGS ========== 
     private enum StartPosition { FRONT, BACK }
     private enum AutoPath { SCORE_AND_PARK, CYCLE }
 
-    private Alliance alliance = Alliance.BLUE;
+    // CORRECTED: Use the global GameState.Alliance for consistency
+    private GameState.Alliance alliance = GameState.Alliance.BLUE;
     private StartPosition startPosition = StartPosition.FRONT;
     private AutoPath autoPath = AutoPath.SCORE_AND_PARK;
 
     private Gamepad.RumbleEffect customRumbleEffect;
     private boolean dpad_up_pressed, dpad_down_pressed, dpad_left_pressed, dpad_right_pressed;
 
-    // ========== OPMODE MEMBERS ==========
+    // ========== OPMODE MEMBERS ========== 
     private Follower follower;
     private ElapsedTime pathTimer;
     private int pathState;
-    // The actionState and actionTimer are no longer needed; the ActionManager handles this.
 
     // === PATHING ===
     private Pose startPose, pickupFrontPose, pickupMiddlePose, pickupBackPose, scorePose, parkPose;
@@ -48,16 +48,19 @@ public class ConfigurablePedroAuto extends OpMode {
     private Path parkPath;
     private PathChain cyclePath;
 
-    // ========== OpMode METHODS ==========
+    // ========== OpMode METHODS ========== 
 
     @Override
     public void init() {
         customRumbleEffect = new Gamepad.RumbleEffect.Builder().addStep(0.5, 0.5, 200).build();
 
+        // CORRECTED: Use the centralized initialization pattern
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
-        actionManager = new ActionManager(robot); // Initialize the ActionManager
+        follower = Constants.createFollower(hardwareMap, robot);
+        robot.initTurret(follower, hardwareMap); // Init turret after follower is created
+
+        actionManager = new ActionManager(robot);
         pathTimer = new ElapsedTime();
-        follower = Constants.createFollower(hardwareMap, telemetry);
 
         telemetry.addLine("Autonomous Configuration:");
         telemetry.addLine("--------------------------------");
@@ -68,8 +71,8 @@ public class ConfigurablePedroAuto extends OpMode {
 
     @Override
     public void init_loop() {
-        if (gamepad1.dpad_left && !dpad_left_pressed) { alliance = Alliance.BLUE; gamepad1.runRumbleEffect(customRumbleEffect); }
-        else if (gamepad1.dpad_right && !dpad_right_pressed) { alliance = Alliance.RED; gamepad1.runRumbleEffect(customRumbleEffect); }
+        if (gamepad1.dpad_left && !dpad_left_pressed) { alliance = GameState.Alliance.BLUE; gamepad1.runRumbleEffect(customRumbleEffect); }
+        else if (gamepad1.dpad_right && !dpad_right_pressed) { alliance = GameState.Alliance.RED; gamepad1.runRumbleEffect(customRumbleEffect); }
 
         if (gamepad1.dpad_up && !dpad_up_pressed) { startPosition = StartPosition.FRONT; gamepad1.runRumbleEffect(customRumbleEffect); }
         else if (gamepad1.dpad_down && !dpad_down_pressed) { startPosition = StartPosition.BACK; gamepad1.runRumbleEffect(customRumbleEffect); }
@@ -78,6 +81,8 @@ public class ConfigurablePedroAuto extends OpMode {
         dpad_down_pressed = gamepad1.dpad_down;
         dpad_left_pressed = gamepad1.dpad_left;
         dpad_right_pressed = gamepad1.dpad_right;
+
+        GameState.alliance = this.alliance; // Persist alliance choice to global state
 
         telemetry.clearAll();
         telemetry.addLine("--- Autonomous Configuration ---");
@@ -89,6 +94,8 @@ public class ConfigurablePedroAuto extends OpMode {
 
     @Override
     public void start() {
+        // CORRECTED: Calibrate the turret at the start of the OpMode for safety.
+        robot.turret.calibrate();
         calculatePoses();
         buildPaths();
         follower.setStartingPose(startPose);
@@ -98,7 +105,7 @@ public class ConfigurablePedroAuto extends OpMode {
     @Override
     public void loop() {
         follower.update();
-        actionManager.update(); // Always update the action manager
+        actionManager.update();
         updatePath();
 
         telemetry.addData("Path State", pathState);
@@ -110,12 +117,15 @@ public class ConfigurablePedroAuto extends OpMode {
 
     @Override
     public void stop() {
-        if (follower != null) follower.breakFollowing();
+        if (follower != null) {
+            GameState.currentPose = follower.getPose(); // Persist final pose for TeleOp
+            follower.breakFollowing();
+        }
         if (actionManager != null) actionManager.stopAll();
     }
 
     private void calculatePoses() {
-         if (alliance == Alliance.BLUE) {
+         if (alliance == GameState.Alliance.BLUE) {
             startPose = (startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START;
             scorePose = FieldPosePresets.BLUE_SCORE_POSE;
             pickupFrontPose = FieldPosePresets.BLUE_PICKUP_FRONT_SPIKE;
@@ -198,9 +208,6 @@ public class ConfigurablePedroAuto extends OpMode {
                 break;
         }
     }
-
-    // The updateAction() method is no longer needed!
-    // All timed action logic is now handled inside the ActionManager.
 
     private void setPathState(int pState) {
         pathState = pState;

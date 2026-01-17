@@ -26,7 +26,7 @@ public class CustomPinpointLocalizer implements Localizer {
         public String hardwareMapName = "pinpoint";
         public double forwardPodY = -8.5; // Y offset from center of rotation
         public double strafePodX = 2.5;   // X offset from center of rotation
-        public double encoderResolution = GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
+        public GoBildaPinpointDriver.GoBildaOdometryPods encoderResolution = GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
         public GoBildaPinpointDriver.EncoderDirection forwardEncoderDirection = GoBildaPinpointDriver.EncoderDirection.REVERSED;
         public GoBildaPinpointDriver.EncoderDirection strafeEncoderDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
         public DistanceUnit distanceUnit = DistanceUnit.INCH;

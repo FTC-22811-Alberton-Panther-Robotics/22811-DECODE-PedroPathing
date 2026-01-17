@@ -5,102 +5,122 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class TurretHardware {
 
-    public DcMotorEx turretMotor = null;
-    public DcMotorEx leftFlywheel = null;
-    public DcMotorEx rightFlywheel = null;
-    private final double TURRET_GEAR_RATIO = 23.0/80;
-    private final double TURRET_TICKS_PER_DEGREE = ((1 + (46.0 /11)) * 28)/360 * TURRET_GEAR_RATIO;
+    public enum TurretMode { AUTO, MANUAL }
+    private TurretMode currentMode = TurretMode.AUTO;
+
+    private DcMotorEx turretMotor;
     private final Follower follower;
-    public boolean validTargetSolution = false;
+
+    // --- Constants ---
+    private final double MOTOR_TICKS_PER_REV = 145.1; // From goBILDA Yellow Jacket 1150 RPM motor page
+    private final double GEAR_RATIO = 82.0 / 23.0;
+    private final double TURRET_TICKS_PER_DEGREE = (MOTOR_TICKS_PER_REV * GEAR_RATIO) / 360.0;
+    
+    private final double LEFT_LIMIT_DEGREES = 90.0;
+    private final double RIGHT_LIMIT_DEGREES = -90.0;
+    private final int CALIBRATION_TIME_MS = 500;
+    private final double MANUAL_MOVE_POWER = 0.5;
+    private final double AUTO_MOVE_POWER = 1.0;
+
+    // --- State Variables ---
+    private double driverNudgeDegrees = 0.0;
+    public boolean isAutoAimActive = true;
+    private Pose currentTargetGoal; // To share with other systems like the launcher
+
     public TurretHardware(Follower follower) {
         this.follower = follower;
-
     }
 
-
-    public void init(HardwareMap hardwareMap){
-        leftFlywheel = hardwareMap.get(DcMotorEx.class,"leftFlywheel");
-        rightFlywheel = hardwareMap.get(DcMotorEx.class,"rightFlywheel");
+    public void init(HardwareMap hardwareMap) {
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
-        turretMotor.setDirection(DcMotorSimple.Direction.FORWARD);/// FIND ACTUAL DIRECTION
-        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        turretMotor.setDirection(DcMotorEx.Direction.REVERSE);
+        turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        stop();
-    }
-
-    ///  ** shooter control ** \\
-    public void shooterWoundUp(){
-        leftFlywheel.setVelocity(2400);
-        rightFlywheel.setVelocity(2400);
-    }
-    /// ** turret control ** \\\
-    public void rightSpin(double power){
         turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        turretMotor.setPower(power);
-    }
-    public void leftSpin(double power){
-        turretMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        turretMotor.setPower(-power);
     }
 
-    public void autoAim(GameState.Alliance alliance){
+    public void calibrate() {
+        turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        turretMotor.setPower(0.3);
+        try { Thread.sleep(CALIBRATION_TIME_MS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        
+        turretMotor.setPower(0);
+        turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        setModeToAuto();
+    }
+
+    public void update(GameState.Alliance alliance) {
+        if (currentMode == TurretMode.AUTO && isAutoAimActive) {
+            updateAutoAim(alliance);
+        }
+    }
+
+    private void updateAutoAim(GameState.Alliance alliance) {
         Pose robotPose = follower.getPose();
-        double robotHeading = robotPose.getHeading();
+        if (robotPose == null) return;
 
-        // In target-lock mode, translation is field-centric.
-        double sin_tl = Math.sin(-robotHeading);
-        double cos_tl = Math.cos(-robotHeading);
+        double absoluteAngleToGoal = calculateHeadingToGoal(alliance, robotPose);
+        double relativeAngleToGoal = MathFunctions.getSmallestAngleDifference(absoluteAngleToGoal, robotPose.getHeading());
+        double relativeAngleDegrees = Math.toDegrees(relativeAngleToGoal);
+        double finalTargetAngleDegrees = relativeAngleDegrees + driverNudgeDegrees;
+        finalTargetAngleDegrees = Math.max(RIGHT_LIMIT_DEGREES, Math.min(LEFT_LIMIT_DEGREES, finalTargetAngleDegrees));
+        
+        // CORRECTED: Invert the tick calculation to account for the reversed motor direction.
+        int targetTicks = (int) ((LEFT_LIMIT_DEGREES - finalTargetAngleDegrees) * TURRET_TICKS_PER_DEGREE);
 
-        // But the robot's rotation is automatically handled by a P-controller to point at the goal.
-        double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(alliance), robotHeading);
-        if (headingError > Math.PI){
-            headingError = Math.PI;
-            validTargetSolution = false;
-        } else if (headingError < -Math.PI){
-            headingError = -Math.PI;
-            validTargetSolution = false;
-        } else validTargetSolution = true;
-        int turretTargetPosition = (int) (headingError * Math.toRadians(TURRET_TICKS_PER_DEGREE) - Math.PI/2);
-
-        turretMotor.setTargetPosition(turretTargetPosition);
-        turretMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        turretMotor.setPower(1);
-
+        turretMotor.setTargetPosition(targetTicks);
     }
 
-    /**
-     * Calculates the absolute field heading (in radians) from the robot's current position
-     * to the center of the correct alliance goal.
-     * @param alliance The current alliance, to select the correct goal.
-     * @return The field-relative heading in radians.
-     */
-    public double calculateHeadingToGoal(GameState.Alliance alliance)
-    {
-        Pose robotPose = follower.getPose();
+    // --- Public Methods for OpMode Control ---
 
-        // Select the correct goal from our presets.
-        Pose targetGoal = (alliance == GameState.Alliance.BLUE)
+    /** Returns the pose of the goal the turret is currently aimed at. */
+    public Pose getTargetGoal() { return currentTargetGoal; }
+
+    public void toggleAutoAim() {
+        this.isAutoAimActive = !this.isAutoAimActive;
+        if (!isAutoAimActive && currentMode == TurretMode.AUTO) {
+            turretMotor.setTargetPosition(turretMotor.getCurrentPosition());
+        }
+    }
+
+    public void setManualPower(double power) {
+        if (currentMode != TurretMode.MANUAL) {
+            currentMode = TurretMode.MANUAL;
+            turretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
+        turretMotor.setPower(power * MANUAL_MOVE_POWER);
+    }
+
+    public void setModeToAuto() {
+        if (currentMode != TurretMode.AUTO) {
+            currentMode = TurretMode.AUTO;
+            turretMotor.setTargetPosition(turretMotor.getCurrentPosition()); 
+            turretMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            turretMotor.setPower(AUTO_MOVE_POWER);
+        }
+    }
+
+    public void adjustNudge(double degrees) { this.driverNudgeDegrees += degrees; }
+    public void resetNudge() { this.driverNudgeDegrees = 0.0; }
+
+    public void stop() {
+        turretMotor.setPower(0);
+    }
+    
+    private double calculateHeadingToGoal(GameState.Alliance alliance, Pose robotPose) {
+        // This now sets the current target goal for other systems to use.
+        this.currentTargetGoal = (alliance == GameState.Alliance.BLUE)
                 ? FieldPosePresets.BLUE_GOAL_TARGET
                 : FieldPosePresets.RED_GOAL_TARGET;
 
-        // Use Math.atan2 to calculate the angle between the robot's position and the goal's position.
         return Math.atan2(
-                targetGoal.getY() - robotPose.getY(),
-                targetGoal.getX() - robotPose.getX()
+                currentTargetGoal.getY() - robotPose.getY(),
+                currentTargetGoal.getX() - robotPose.getX()
         );
     }
-
-    public void stop() {
-        turretMotor.setVelocity(0.0);
-        leftFlywheel.setVelocity(0.0);
-    }
-
-
-
-
 }

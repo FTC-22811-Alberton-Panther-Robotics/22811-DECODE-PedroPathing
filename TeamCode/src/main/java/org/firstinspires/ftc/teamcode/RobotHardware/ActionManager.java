@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 /**
  * ActionManager is the definitive, unified class for controlling all robot mechanisms.
  * It is built as a state machine to handle complex, multi-step sequences like shooting and intaking.
- * This replaces the previous BallManager and the old, broken ActionManager.
  */
 public class ActionManager {
 
@@ -47,17 +46,18 @@ public class ActionManager {
                 }
                 break;
 
+            // CORRECTED: Increased timer to allow servos to complete their full stroke.
             case SHOOT_TRANSFER_LEFT:
-                if (timer.seconds() > 0.5) {
-                    robot.ballTransfer.leftReturn();
+                if (timer.seconds() > 1.0) {
+                    robot.transfer.LeftTransferReturn();
                     currentState = ActionState.SHOOT_SCOOP;
                     timer.reset();
                 }
                 break;
 
             case SHOOT_TRANSFER_RIGHT:
-                if (timer.seconds() > 0.5) {
-                    robot.ballTransfer.rightReturn();
+                if (timer.seconds() > 1.0) {
+                    robot.transfer.RightTransferReturn();
                     currentState = ActionState.SHOOT_SCOOP;
                     timer.reset();
                 }
@@ -65,7 +65,7 @@ public class ActionManager {
 
             case SHOOT_SCOOP:
                 if (timer.seconds() > 0.67) {
-                    robot.scooper.ballDown();
+                    robot.scoop.ballDown();
                     currentState = ActionState.IDLE;
                 }
                 break;
@@ -77,31 +77,29 @@ public class ActionManager {
     public void startGreenBallShoot() {
         if (isBusy()) return;
         currentState = ActionState.SHOOT_TRANSFER_RIGHT;
-        robot.launcher.spinUp();
-        robot.ballTransfer.rightTransfer();
-        robot.scooper.ballUp();
+        robot.transfer.runRight();
+        robot.scoop.ballUp();
         timer.reset();
     }
 
     public void startPurpleBallShoot() {
         if (isBusy()) return;
         currentState = ActionState.SHOOT_TRANSFER_LEFT;
-        robot.launcher.spinUp();
-        robot.ballTransfer.leftTransfer();
-        robot.scooper.ballUp();
+        robot.transfer.runLeft();
+        robot.scoop.ballUp();
         timer.reset();
     }
 
     public void setDiverterToGreen() {
-        if (robot.ballDiverter != null) {
-            robot.ballDiverter.greenBall();
-        }
+        robot.diverter.setPosition(DiverterHardware.GatePosition.GREEN);
     }
 
     public void setDiverterToPurple() {
-        if (robot.ballDiverter != null) {
-            robot.ballDiverter.purpleBall();
-        }
+        robot.diverter.setPosition(DiverterHardware.GatePosition.PURPLE);
+    }
+
+    public void setDiverterToNeutral() {
+        robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
     }
 
     // Generic actions for the autonomous playlist
@@ -115,24 +113,29 @@ public class ActionManager {
     public void startLaunch() {
         if (isBusy()) return;
         currentState = ActionState.WAITING_FOR_AUTO_ACTION;
-        robot.launcher.spinUp();
         timer.reset();
     }
 
+    /**
+     * A specific, controlled action to clear pixel jams.
+     * It reverses the intake and sets the diverter to a neutral position.
+     */
+    public void clearJam() {
+        robot.intake.reverse();
+        robot.diverter.setNeutral();
+    }
+
     public void startSmartLaunch(GameState.ObeliskPattern pattern) {
-        // This can be expanded with pattern-specific logic
-        // For now, it defaults to a standard launch sequence.
         if (isBusy()) return;
-        // This is just an example; you can call startPurpleBallShoot or startGreenBallShoot here.
         startPurpleBallShoot(); 
     }
 
     public void stopAll() {
         robot.intake.stop();
         robot.launcher.stop();
-        robot.ballTransfer.leftReturn();
-        robot.ballTransfer.rightReturn();
-        robot.scooper.ballDown();
+        robot.transfer.LeftTransferReturn();
+        robot.transfer.RightTransferReturn();
+        robot.scoop.ballDown();
         currentState = ActionState.IDLE;
     }
 
