@@ -18,7 +18,7 @@ public class HelenaTeleOp extends OpMode {
     BallManager ballManager;
     TurretHardware turretHardware;
     DriverAssist driveHelper;
-    ActionManager actionManager;
+    //ActionManager actionManager;
     Follower follower;
     private GameState.Alliance alliance;
     RobotHardwareContainer robot;
@@ -31,7 +31,7 @@ public class HelenaTeleOp extends OpMode {
     public void init() {
         // Initialize all our hardware and helper classes.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
-        actionManager = new ActionManager(robot);
+        //actionManager = new ActionManager(robot);
         follower = Constants.createFollower(hardwareMap, robot.localizer);
         driveHelper = new DriverAssist(follower);
         ballManager = new BallManager(robot);
@@ -56,7 +56,7 @@ public class HelenaTeleOp extends OpMode {
 
     public void loop(){
         follower.update();
-        actionManager.update();
+        //actionManager.update();
         ballManager.update();
         driveHelper.update(-gamepad2.left_stick_y, gamepad2.left_stick_x, gamepad2.right_stick_x, alliance);
         ManualControls();
