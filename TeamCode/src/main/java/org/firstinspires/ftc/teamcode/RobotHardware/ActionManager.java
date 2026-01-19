@@ -10,6 +10,7 @@ public class ActionManager {
 
     private final RobotHardwareContainer robot;
     private final ElapsedTime timer = new ElapsedTime();
+    private boolean scoopHasBeenMoved = false;
 
     public enum ActionState {
         IDLE,
@@ -34,21 +35,26 @@ public class ActionManager {
                 break;
 
             case WAITING_FOR_AUTO_ACTION:
-                if (timer.seconds() > 1.5) { // Default time for simple auto actions
+                if (timer.seconds() > 1.0) { // Default time for simple auto actions
                     stopAll();
                 }
                 break;
 
             case INTAKING:
-                if (timer.seconds() > 0.5) { // Run intake for a short burst
+                if (timer.seconds() > 2.0) { // Run intake for a short burst
                     robot.intake.stop();
                     currentState = ActionState.IDLE;
                 }
                 break;
 
-            // CORRECTED: Increased timer to allow servos to complete their full stroke.
             case SHOOT_TRANSFER_LEFT:
-                if (timer.seconds() > 1.0) {
+                // After a longer delay, move the scoop up to meet the pixel.
+                if (!scoopHasBeenMoved && timer.seconds() > 1.0) {
+                    robot.scoop.ballUp();
+                    scoopHasBeenMoved = true;
+                }
+                // After the full duration, return the transfer mechanism.
+                if (timer.seconds() > 1.2) {
                     robot.transfer.LeftTransferReturn();
                     currentState = ActionState.SHOOT_SCOOP;
                     timer.reset();
@@ -56,7 +62,13 @@ public class ActionManager {
                 break;
 
             case SHOOT_TRANSFER_RIGHT:
-                if (timer.seconds() > 1.0) {
+                // After a longer delay, move the scoop up to meet the pixel.
+                if (!scoopHasBeenMoved && timer.seconds() > 1.0) {
+                    robot.scoop.ballUp();
+                    scoopHasBeenMoved = true;
+                }
+                // After the full duration, return the transfer mechanism.
+                if (timer.seconds() > 1.2) {
                     robot.transfer.RightTransferReturn();
                     currentState = ActionState.SHOOT_SCOOP;
                     timer.reset();
@@ -76,17 +88,17 @@ public class ActionManager {
 
     public void startGreenBallShoot() {
         if (isBusy()) return;
+        scoopHasBeenMoved = false;
         currentState = ActionState.SHOOT_TRANSFER_RIGHT;
         robot.transfer.runRight();
-        robot.scoop.ballUp();
         timer.reset();
     }
 
     public void startPurpleBallShoot() {
         if (isBusy()) return;
+        scoopHasBeenMoved = false;
         currentState = ActionState.SHOOT_TRANSFER_LEFT;
         robot.transfer.runLeft();
-        robot.scoop.ballUp();
         timer.reset();
     }
 

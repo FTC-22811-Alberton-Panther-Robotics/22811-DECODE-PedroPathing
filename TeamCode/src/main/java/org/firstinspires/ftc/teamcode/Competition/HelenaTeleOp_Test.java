@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
+import org.firstinspires.ftc.teamcode.RobotHardware.DriverAssist;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -40,9 +41,10 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * D-Pad Left:            Set pixel diverter to PURPLE path
  * D-Pad Right:           Set pixel diverter to GREEN path
  * D-Pad Up:              Set pixel diverter to NEUTRAL (for clearing jams)
+ * B Button:              Toggle drive mode (Robot-Centric, Field-Centric, Target-Lock)
  */
-@TeleOp(name = "HelenaTeleOp")
-public class HelenaTeleOp extends OpMode {
+@TeleOp(name = "HelenaTeleOp_Test")
+public class HelenaTeleOp_Test extends OpMode {
 
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
@@ -52,6 +54,7 @@ public class HelenaTeleOp extends OpMode {
 
     // Button press trackers for edge detection
     private boolean g1_y_pressed, g1_x_pressed, g1_right_bumper_pressed, g1_left_bumper_pressed, g1_a_pressed, g1_start_pressed;
+    private boolean g2_b_pressed;
     private boolean was_manually_moving_turret;
 
 
@@ -109,8 +112,8 @@ public class HelenaTeleOp extends OpMode {
         robot.turret.update(alliance);
         robot.launcher.update();
 
-        // Driving is now handled by the simple and reliable MecanumHardware class.
-        robot.mecanumDrive.drive(-gamepad2.left_stick_y, gamepad2.left_stick_x, gamepad2.right_stick_x);
+        // Correctly drive the robot using the DriverAssist class.
+        robot.driverAssist.update(-gamepad2.left_stick_y, gamepad2.left_stick_x, gamepad2.right_stick_x, alliance);
 
         handleManualControls();
         updateButtonStates();
@@ -142,7 +145,7 @@ public class HelenaTeleOp extends OpMode {
         if (gamepad1.a && !g1_a_pressed) robot.launcher.toggleLauncher();
         if (gamepad1.start && !g1_start_pressed) robot.driverAssist.resetHeading();
 
-        // === Gamepad 2: Driver Controls (Intake, Diverter) ===
+        // === Gamepad 2: Driver Controls (Intake, Diverter, Drive Mode) ===
         if (gamepad2.right_trigger > 0.1) robot.intake.run();
         else if (gamepad2.left_trigger > 0.1) robot.intake.reverse();
         else if (!actionManager.isBusy()) robot.intake.stop();
@@ -150,6 +153,14 @@ public class HelenaTeleOp extends OpMode {
         if (gamepad2.dpad_left) actionManager.setDiverterToPurple();
         else if (gamepad2.dpad_right) actionManager.setDiverterToGreen();
         else if (gamepad2.dpad_up) actionManager.setDiverterToNeutral();
+        
+        if (gamepad2.b && !g2_b_pressed) {
+            switch (robot.driverAssist.getMode()) {
+                case ROBOT_CENTRIC: robot.driverAssist.setMode(DriverAssist.DriveMode.FIELD_CENTRIC); break;
+                case FIELD_CENTRIC: robot.driverAssist.setMode(DriverAssist.DriveMode.TARGET_LOCK); break;
+                case TARGET_LOCK: robot.driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC); break;
+            }
+        }
     }
 
     private void updateButtonStates() {
@@ -160,6 +171,9 @@ public class HelenaTeleOp extends OpMode {
         g1_start_pressed = gamepad1.start;
         g1_right_bumper_pressed = gamepad1.right_bumper;
         g1_left_bumper_pressed = gamepad1.left_bumper;
+        
+        // Gamepad 2
+        g2_b_pressed = gamepad2.b;
 
         double turret_input = -gamepad1.right_stick_x;
         if (gamepad1.dpad_right) turret_input = -1.0; 
@@ -169,9 +183,12 @@ public class HelenaTeleOp extends OpMode {
 
     private void updateTelemetry() {
         telemetry.addData("Alliance", alliance.toString());
+        telemetry.addData("Drive Mode", robot.driverAssist.getMode().toString());
         telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
         telemetry.addData("Launcher Target RPM", "%.0f", robot.launcher.getCurrentTargetVelocity());
         telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
+        telemetry.addData("Turret Current (A)", "%.2f", robot.turret.getTurretCurrent());
+        telemetry.addData("Intake Current (A)", "%.2f", robot.intake.getIntakeCurrent());
 
         Pose currentPose = follower.getPose();
         if (currentPose != null) {

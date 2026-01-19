@@ -34,8 +34,8 @@ public class LauncherHardware {
         leftFlywheel = hardwareMap.get(DcMotorEx.class, "leftFlywheel");
         rightFlywheel = hardwareMap.get(DcMotorEx.class, "rightFlywheel");
 
-        leftFlywheel.setDirection(DcMotor.Direction.REVERSE);
-        rightFlywheel.setDirection(DcMotor.Direction.FORWARD);
+        leftFlywheel.setDirection(DcMotor.Direction.FORWARD);
+        rightFlywheel.setDirection(DcMotor.Direction.REVERSE);
 
         leftFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);

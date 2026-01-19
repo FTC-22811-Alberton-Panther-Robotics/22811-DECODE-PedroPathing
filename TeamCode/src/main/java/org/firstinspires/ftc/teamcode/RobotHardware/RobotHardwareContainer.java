@@ -4,9 +4,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Localizer;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointLocalizer;
-import org.firstinspires.ftc.teamcode.pedroPathing.LimelightAprilTagLocalizer;
 
 /**
  * This class acts as a container to hold and initialize all the robot's hardware subsystems.
@@ -20,10 +18,10 @@ public class RobotHardwareContainer {
     public final ScoopHardware scoop;
     public final DiverterHardware diverter;
     public TurretHardware turret;
-    public final MecanumHardware mecanumDrive; // Added MecanumHardware
+    public final MecanumHardware mecanumDrive;
+    public DriverAssist driverAssist;
 
     // Localizers for Pedro Pathing
-    public final LimelightAprilTagLocalizer aprilTag;
     public final CustomPinpointLocalizer pinpoint;
     public final Localizer localizer; // The single, authoritative localizer
 
@@ -33,22 +31,18 @@ public class RobotHardwareContainer {
         transfer = new TransferHardware();
         scoop = new ScoopHardware();
         diverter = new DiverterHardware();
-        mecanumDrive = new MecanumHardware(); // Instantiate MecanumHardware
+        mecanumDrive = new MecanumHardware();
 
-        // Create the two underlying localizers.
-        aprilTag = new LimelightAprilTagLocalizer();
-        aprilTag.init(hardwareMap, telemetry);
+        // For testing, we are ONLY using the dead-wheel localizer.
         pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointLocalizer.CustomPinpointConstants());
-
-        // Create the CombinedLocalizer
-        localizer = new CombinedLocalizer(pinpoint, aprilTag, telemetry);
+        localizer = pinpoint; // Use pinpoint directly
 
         // Initialize all mechanical subsystems
         intake.init(hardwareMap);
         transfer.init(hardwareMap);
         scoop.init(hardwareMap);
         diverter.init(hardwareMap);
-        mecanumDrive.init(hardwareMap); // Initialize MecanumHardware
+        mecanumDrive.init(hardwareMap);
     }
 
     public void initTurret(Follower follower, HardwareMap hardwareMap) {
@@ -59,5 +53,9 @@ public class RobotHardwareContainer {
     public void initLauncher(Follower follower, TurretHardware turret, HardwareMap hardwareMap) {
         this.launcher = new LauncherHardware(follower, turret);
         this.launcher.init(hardwareMap);
+    }
+
+    public void initDriverAssist(Follower follower) {
+        this.driverAssist = new DriverAssist(follower);
     }
 }

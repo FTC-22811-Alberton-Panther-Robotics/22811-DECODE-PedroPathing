@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 public class IntakeHardware {
 
@@ -32,5 +33,9 @@ public class IntakeHardware {
     /** Stops the intake motor. */
     public void stop() {
         intakeMotor.setPower(0.0);
+    }
+
+    public double getIntakeCurrent() {
+        return intakeMotor.getCurrent(CurrentUnit.AMPS);
     }
 }

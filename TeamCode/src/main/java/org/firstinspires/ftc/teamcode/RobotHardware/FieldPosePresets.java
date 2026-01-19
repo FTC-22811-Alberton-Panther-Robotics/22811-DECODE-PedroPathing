@@ -11,7 +11,7 @@ public class FieldPosePresets {
 
     // ========== BLUE ALLIANCE POSES ==========
     public static Pose BLUE_FRONT_START = new Pose(56, 9, Math.toRadians(90));
-    public static Pose BLUE_BACK_START = new Pose(33, 135, Math.toRadians(270));
+    public static Pose BLUE_BACK_START = new Pose(23, 120, Math.toRadians(270));
 
     public static Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(135));
     public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
@@ -27,7 +27,7 @@ public class FieldPosePresets {
 
     // ========== RED ALLIANCE POSES ==========
     public static Pose RED_FRONT_START = new Pose(88, 9, Math.toRadians(90));
-    public static Pose RED_BACK_START = new Pose(111, 135, Math.toRadians(270));
+    public static Pose RED_BACK_START = new Pose(121, 120, Math.toRadians(270));
 
     public static Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(45));
     public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(180));

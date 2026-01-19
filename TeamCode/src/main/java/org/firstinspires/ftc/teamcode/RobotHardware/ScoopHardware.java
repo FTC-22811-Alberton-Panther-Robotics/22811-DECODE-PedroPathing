@@ -8,8 +8,8 @@ public class ScoopHardware {
     public Servo ballScoop;
 
     // Define constants for the servo positions for clarity and easy tuning.
-    private static final double UP_POSITION = 0.6;
-    private static final double DOWN_POSITION = 0.4;
+    private static final double UP_POSITION = 0.8;
+    private static final double DOWN_POSITION = 0.3;
 
     public void init(HardwareMap hardwaremap){
         ballScoop = hardwaremap.get(Servo.class, "scoop");

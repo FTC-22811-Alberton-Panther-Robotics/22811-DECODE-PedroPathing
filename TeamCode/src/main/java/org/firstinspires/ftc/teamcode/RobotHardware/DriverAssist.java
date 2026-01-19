@@ -84,4 +84,17 @@ public class DriverAssist {
                 targetGoal.getX() - robotPose.getX()
         );
     }
+
+
+    public void resetHeading() {
+        Pose currentPose = follower.getPose();
+        if (currentPose != null) {
+            // If we have a pose, just reset the heading to 90 degrees (facing forward).
+            follower.setPose(new Pose(currentPose.getX(), currentPose.getY(), Math.toRadians(90)));
+        } else {
+            // If the pose is null, reset to a default pose (0, 0) with a 90-degree heading.
+            follower.setPose(new Pose(0, 0, Math.toRadians(90)));
+        }
+    }
+
 }
