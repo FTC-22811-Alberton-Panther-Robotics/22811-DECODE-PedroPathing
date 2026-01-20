@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-@Autonomous(name = "ConfigurableAuto Test", group = "01 Helena", preselectTeleOp = "HelenaTeleOp")
+@Autonomous(name = "ConfigurableAuto Test", group = "01 Helena", preselectTeleOp = "HelenaTeleOp_Test")
 public class ConfigurableAuto_Test extends OpMode {
 
     // ========== CONFIGURATION ========== 

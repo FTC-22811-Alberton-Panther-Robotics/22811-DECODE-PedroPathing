@@ -20,6 +20,7 @@ public class RobotHardwareContainer {
     public TurretHardware turret;
     public final MecanumHardware mecanumDrive;
     public DriverAssist driverAssist;
+    public LimelightBallDetector limelightBallDetector;
 
     // Localizers for Pedro Pathing
     public final CustomPinpointLocalizer pinpoint;
@@ -32,6 +33,7 @@ public class RobotHardwareContainer {
         scoop = new ScoopHardware();
         diverter = new DiverterHardware();
         mecanumDrive = new MecanumHardware();
+        limelightBallDetector = new LimelightBallDetector();
 
         // For testing, we are ONLY using the dead-wheel localizer.
         pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointLocalizer.CustomPinpointConstants());
@@ -57,5 +59,9 @@ public class RobotHardwareContainer {
 
     public void initDriverAssist(Follower follower) {
         this.driverAssist = new DriverAssist(follower);
+    }
+
+    public void initLimelight(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.limelightBallDetector.init(hardwareMap, telemetry);
     }
 }

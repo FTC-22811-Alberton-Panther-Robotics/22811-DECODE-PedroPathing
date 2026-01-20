@@ -15,9 +15,9 @@ public class ActionManager {
     public enum ActionState {
         IDLE,
         INTAKING,
-        SHOOT_TRANSFER_LEFT,
-        SHOOT_TRANSFER_RIGHT,
-        SHOOT_SCOOP,
+        TRANSFER_GREEN_TO_SCOOP,
+        TRANSFER_PURPLE_TO_SCOOP,
+        LAUNCH_FROM_SCOOP,
         WAITING_FOR_AUTO_ACTION // A generic state for simple, timed auto commands
     }
     private ActionState currentState = ActionState.IDLE;
@@ -47,35 +47,30 @@ public class ActionManager {
                 }
                 break;
 
-            case SHOOT_TRANSFER_LEFT:
-                // After a longer delay, move the scoop up to meet the pixel.
-                if (!scoopHasBeenMoved && timer.seconds() > 1.0) {
-                    robot.scoop.ballUp();
-                    scoopHasBeenMoved = true;
-                }
+            case TRANSFER_PURPLE_TO_SCOOP:
                 // After the full duration, return the transfer mechanism.
                 if (timer.seconds() > 1.2) {
                     robot.transfer.LeftTransferReturn();
-                    currentState = ActionState.SHOOT_SCOOP;
-                    timer.reset();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case SHOOT_TRANSFER_RIGHT:
-                // After a longer delay, move the scoop up to meet the pixel.
-                if (!scoopHasBeenMoved && timer.seconds() > 1.0) {
-                    robot.scoop.ballUp();
-                    scoopHasBeenMoved = true;
-                }
+            case TRANSFER_GREEN_TO_SCOOP:
                 // After the full duration, return the transfer mechanism.
                 if (timer.seconds() > 1.2) {
                     robot.transfer.RightTransferReturn();
-                    currentState = ActionState.SHOOT_SCOOP;
-                    timer.reset();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case SHOOT_SCOOP:
+            case LAUNCH_FROM_SCOOP:
+                // First, move the scoop up.
+                if (!scoopHasBeenMoved) {
+                    robot.scoop.ballUp();
+                    scoopHasBeenMoved = true;
+                    timer.reset();
+                }
+                // After a delay, bring it back down.
                 if (timer.seconds() > 0.67) {
                     robot.scoop.ballDown();
                     currentState = ActionState.IDLE;
@@ -86,19 +81,24 @@ public class ActionManager {
 
     // ----- PUBLIC METHODS FOR TELEOP AND AUTO -----
 
-    public void startGreenBallShoot() {
+    public void startTransferGreen() {
         if (isBusy()) return;
-        scoopHasBeenMoved = false;
-        currentState = ActionState.SHOOT_TRANSFER_RIGHT;
+        currentState = ActionState.TRANSFER_GREEN_TO_SCOOP;
         robot.transfer.runRight();
         timer.reset();
     }
 
-    public void startPurpleBallShoot() {
+    public void startTransferPurple() {
+        if (isBusy()) return;
+        currentState = ActionState.TRANSFER_PURPLE_TO_SCOOP;
+        robot.transfer.runLeft();
+        timer.reset();
+    }
+
+    public void launchFromScoop() {
         if (isBusy()) return;
         scoopHasBeenMoved = false;
-        currentState = ActionState.SHOOT_TRANSFER_LEFT;
-        robot.transfer.runLeft();
+        currentState = ActionState.LAUNCH_FROM_SCOOP;
         timer.reset();
     }
 
@@ -139,7 +139,9 @@ public class ActionManager {
 
     public void startSmartLaunch(GameState.ObeliskPattern pattern) {
         if (isBusy()) return;
-        startPurpleBallShoot(); 
+        // This method might need to be re-evaluated with the new action sequence.
+        // For now, it will just transfer a purple ball.
+        startTransferPurple();
     }
 
     public void stopAll() {
