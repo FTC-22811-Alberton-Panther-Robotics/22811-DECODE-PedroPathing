@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.OldCode;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -42,6 +43,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * D-Pad Up:              Set pixel diverter to NEUTRAL (for clearing jams)
  */
 @TeleOp(name = "HelenaTeleOp")
+@Disabled
 public class HelenaTeleOp extends OpMode {
 
     private RobotHardwareContainer robot;

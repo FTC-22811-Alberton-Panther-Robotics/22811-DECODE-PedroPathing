@@ -10,7 +10,32 @@ import java.util.Optional;
 
 /**
  * A fused localizer that orchestrates corrections between a dead-wheel localizer
- * (PinpointHardware) and a vision localizer (LimelightAprilTagLocalizer).
+ * (CustomPinpointLocalizer) and a vision localizer (LimelightAprilTagLocalizer).
+ * This class is the single source of truth for the robot's position on the field.
+ * <p>
+ * ---------------------------------------------------------------------------------
+ * --- HOW IT WORKS ---
+ * ---------------------------------------------------------------------------------
+ * The challenge with fusing two localization systems is that they have different latencies.
+ * Dead-wheel encoders provide very fast but slightly inaccurate updates (due to wheel slip),
+ * while the Limelight provides very accurate but slow updates (due to camera exposure,
+ * network time, and image processing).
+ * <p>
+ * This class solves this problem with the following logic:
+ * 1. It continuously updates the dead-wheel localizer (`pinpoint.update()`).
+ * 2. It also continuously asks the Limelight for a new pose (`limelight.getRobotPoseWithLatency()`).
+ * 3. When the Limelight returns a valid pose, it also tells us its `latency`—how old the data is.
+ * 4. We then ask our dead-wheel localizer where it *thought* the robot was at that exact moment
+ *    in the past (`pinpoint.getPoseAtLatency(latency)`).
+ * 5. The difference between the Limelight's accurate pose and the dead-wheel's historical pose
+ *    is calculated. This difference is the `error`.
+ * 6. This `error` is then applied to the *current* dead-wheel pose, instantly correcting it.
+ * 7. The dead-wheel localizer's history is then cleared to prevent applying the same correction twice.
+ * <p>
+ * By delegating all other method calls (like `getPose()`) to the underlying dead-wheel
+ * localizer, the rest of the robot code can get a smooth, fast, and frequently-corrected
+ * position estimate without needing to know about the complexity of the fusion logic.
+ * ---------------------------------------------------------------------------------
  */
 public class CombinedLocalizer implements Localizer { 
 
@@ -34,8 +59,6 @@ public class CombinedLocalizer implements Localizer {
         pinpoint.update();
         Optional<LimelightAprilTagLocalizer.LimelightPoseData> limelightPoseData = limelight.getRobotPoseWithLatency();
         
-        // CORRECTED: This is the definitive fix for the NullPointerException.
-        // We must ensure the pinpoint localizer has a valid pose before attempting a correction.
         if (limelightPoseData.isPresent()) {
             Pose currentPinpointPose = pinpoint.getPose();
             Pose pinpointPoseAtLatency = pinpoint.getPoseAtLatency(limelightPoseData.get().latency);

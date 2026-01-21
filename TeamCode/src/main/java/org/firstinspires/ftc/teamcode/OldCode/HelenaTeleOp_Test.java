@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.OldCode;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -44,6 +45,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * B Button:              Toggle drive mode (Robot-Centric, Field-Centric, Target-Lock)
  */
 @TeleOp(name = "HelenaTeleOp_Test")
+@Disabled
 public class HelenaTeleOp_Test extends OpMode {
 
     private RobotHardwareContainer robot;

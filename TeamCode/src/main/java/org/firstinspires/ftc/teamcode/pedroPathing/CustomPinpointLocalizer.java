@@ -14,24 +14,27 @@ import java.util.ArrayDeque;
 import java.util.OptionalDouble;
 
 /**
- * A standalone dead-wheel localizer that correctly wraps the GoBildaPinpointDriver.
- * This class now contains its own constants for clean encapsulation.
+ * This is our custom implementation of the dead-wheel localizer, which wraps the
+ * GoBildaPinpointDriver. It is responsible for two key things:
+ * 1. Providing a clean interface between the Pedro Pathing library and the specific
+ *    odometry hardware on the robot.
+ * 2. Maintaining a short-term history of the robot's pose. This is essential for
+ *    the `CombinedLocalizer` to be able to correct for vision system latency.
+ * <p>
+ * ---------------------------------------------------------------------------------
+ * --- HOW IT WORKS ---
+ * ---------------------------------------------------------------------------------
+ * The `update()` method is called in every loop. Each time, it adds the robot's current
+ * pose and a timestamp to a short list (`poseHistory`).
+ * <p>
+ * When the `CombinedLocalizer` receives a pose from the Limelight, it can ask this class,
+ * "Where were you at time X in the past?" using the `getPoseAtLatency()` method.
+ * This class then looks through its history to find the closest pose it has to that time.
+ * This ability to look back in time is the key to accurately fusing the fast-but-drifty
+ * dead-wheels with the slow-but-accurate camera.
+ * ---------------------------------------------------------------------------------
  */
 public class CustomPinpointLocalizer implements Localizer {
-
-    /**
-     * Nested static class for all configuration specific to the Pinpoint hardware.
-     */
-    public static class CustomPinpointConstants {
-        public String hardwareMapName = "pinpoint";
-        public double forwardPodY = -8.5; // Y offset from center of rotation
-        public double strafePodX = 2.5;   // X offset from center of rotation
-        public GoBildaPinpointDriver.GoBildaOdometryPods encoderResolution = GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
-        public GoBildaPinpointDriver.EncoderDirection forwardEncoderDirection = GoBildaPinpointDriver.EncoderDirection.REVERSED;
-        public GoBildaPinpointDriver.EncoderDirection strafeEncoderDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
-        public DistanceUnit distanceUnit = DistanceUnit.INCH;
-        public OptionalDouble yawScalar = OptionalDouble.empty(); // Only use if significant IMU drift is observed
-    }
 
     private final GoBildaPinpointDriver pinpointDriver;
     private final CustomPinpointConstants constants;
@@ -70,7 +73,7 @@ public class CustomPinpointLocalizer implements Localizer {
     public void update() {
         pinpointDriver.update();
         poseHistory.addLast(new PoseSnapshot(System.nanoTime(), getPose()));
-        if (poseHistory.size() > 150) {
+        if (poseHistory.size() > 150) { // Keep a buffer of around 150 readings
             poseHistory.removeFirst();
         }
     }
@@ -143,6 +146,11 @@ public class CustomPinpointLocalizer implements Localizer {
     @Override
     public double getTurningMultiplier() { return 1.0; }
 
+    /**
+     * Gets the historical pose from the stored buffer that is closest to a given latency.
+     * @param latency The age of the desired pose in seconds.
+     * @return The historical Pose, or the current pose if no suitable history is found.
+     */
     public Pose getPoseAtLatency(double latency) {
         long timeOfMeasurement = System.nanoTime() - (long)(latency * 1e9);
         PoseSnapshot closestSnapshot = null;
@@ -156,6 +164,10 @@ public class CustomPinpointLocalizer implements Localizer {
         return (closestSnapshot != null) ? closestSnapshot.pose : getPose();
     }
 
+    /**
+     * Clears the pose history buffer. This is called by the CombinedLocalizer after a
+     * vision correction has been applied to prevent re-applying the same correction.
+     */
     public void clearPoseHistory() {
         poseHistory.clear();
     }

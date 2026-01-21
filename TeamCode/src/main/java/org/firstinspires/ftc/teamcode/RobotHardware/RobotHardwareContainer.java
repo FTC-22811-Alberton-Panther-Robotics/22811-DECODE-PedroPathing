@@ -4,10 +4,18 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.localization.Localizer;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointConstants;
 import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointLocalizer;
 
 /**
- * This class acts as a container to hold and initialize all the robot's hardware subsystems.
+ * This class acts as a central container to hold and initialize all the robot's hardware subsystems.
+ * It follows the "Dependency Injection" pattern, meaning it creates and holds instances of
+ * every hardware class (like IntakeHardware, LauncherHardware, etc.) in one place.
+ * <p>
+ * By creating all hardware objects here, any OpMode (like BozemanTeleop) can get access
+ * to all the robot's hardware by creating just ONE instance of this container class.
+ * This keeps the OpMode code cleaner and separates the hardware initialization logic
+ * from the control logic.
  */
 public class RobotHardwareContainer {
 
@@ -36,15 +44,16 @@ public class RobotHardwareContainer {
         limelightBallDetector = new LimelightBallDetector();
 
         // For testing, we are ONLY using the dead-wheel localizer.
-        pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointLocalizer.CustomPinpointConstants());
+        pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointConstants());
         localizer = pinpoint; // Use pinpoint directly
 
         // Initialize all mechanical subsystems
         intake.init(hardwareMap);
         transfer.init(hardwareMap);
         scoop.init(hardwareMap);
-        diverter.init(hardwareMap);
+        diverter.init(hardwareMap, limelightBallDetector);
         mecanumDrive.init(hardwareMap);
+        limelightBallDetector.init(hardwareMap, telemetry);
     }
 
     public void initTurret(Follower follower, HardwareMap hardwareMap) {

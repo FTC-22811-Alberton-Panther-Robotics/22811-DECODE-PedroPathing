@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.Competition;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
-import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -13,18 +12,62 @@ import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-import java.util.Optional;
-
 /**
- * Main competition TeleOp for the robot in preparation for the FTC State Championship in Bozeman.
- * This OpMode uses a "Driver/Operator" control scheme.
+ * ---------------------------------------------------------------------------------
+ * --- MASTER CHECKLIST AND CHANGELOG ---
+ * ---------------------------------------------------------------------------------
+ * This is the central guide for ensuring the robot is competition-ready.
  *
- * Features:
- * - Continuous localization and field-aware positioning via Pedro Pathing.
- * - Automated turret aiming that constantly points at the selected goal.
- * - Automated flywheel speed control that adjusts based on the robot's distance to the goal.
- * - Full manual overrides for all automated systems.
- * - Automated diverter gate control with manual override.
+ * -- V1.1 CHANGELOG --
+ * - MAJOR BUGFIX: Corrected a critical bug where the dead-wheel localizer was using
+ *   zeroes for its pod offsets, causing significant localization drift. The correct
+ *   offsets are now in `CustomPinpointConstants.java`.
+ * - Refactored all subsystems to use the correct game piece term: "Artifact".
+ * - Implemented a Region of Interest (ROI) in the Limelight detector to prevent it
+ *   from seeing Artifacts already inside the robot.
+ * - Created detailed Javadoc and tuning guides in all major hardware classes.
+ * - Decoupled the transfer and launch sequences for more precise driver control.
+ * - Consolidated primary controls to Gamepad 1 for a single operator.
+ * - Confirmed reliable fallback controls exist for all automated systems.
+ *
+ * -- MASTER TUNING AND TESTING CHECKLIST --
+ * DRIVETRAIN & LOCALIZATION:
+ * [ ] (CRITICAL) DRIVE TUNING: Use `DriveTuning` OpMode to find `X_VELOCITY`, `Y_VELOCITY`,
+ *     and `staticFrictionCoefficient` in `CustomMecanumDrive`.
+ * [x] (CRITICAL) ODOMETRY OFFSETS: Verify dead-wheel pod offsets (`forwardPodY`, `strafePodX`)
+ *     in `CustomPinpointConstants` are accurately measured. (Values updated from bugfix).
+ * [ ] MOTOR DIRECTIONS: Verify directions for both the main drive motors (`CustomMecanumDrive`)
+ *     and the dead-wheel encoders (`CustomPinpointConstants`).
+ * [ ] IMU ORIENTATION: Verify the Control Hub orientation in `MecanumHardware` for field-relative fallbacks.
+ *
+ * TURRET:
+ * [ ] (CRITICAL) PIDF TUNING: Run the `TurretTuningOpMode` to tune the `TURRET_PIDF`
+ *     coefficients for fast, stable aiming.
+ * [ ] PHYSICAL CONSTANTS: Verify `GEAR_RATIO`, `MOTOR_TICKS_PER_REV`, `ZERO_POINT_DEGREES`,
+ *     and software limits in `TurretHardware`.
+ * [ ] CALIBRATION: Tune `CALIBRATION_POWER` and `CALIBRATION_TIME_MS` for a gentle but
+ *     reliable calibration sequence.
+ *
+ * LAUNCHER:
+ * [ ] VELOCITY MAPPING: Tune the min/max shot distances and velocities in `LauncherHardware`.
+ * [ ] MOTOR CONSTANTS: Verify motor directions and `ticksPerRevolution` in `LauncherHardware`.
+ *
+ * DIVERTER & INTAKE:
+ * [x] VOLTAGE CALIBRATION: Calibrate analog feedback voltages in `DiverterHardware`.
+ * [ ] LIMELIGHT ROI: Tune `ROI_MIN_Y` and `ROI_MAX_Y` in `DiverterHardware`.
+ * [ ] JAM DETECTION: Tune `STUCK_TOLERANCE` in `DiverterHardware`.
+ * [ ] LOGIC VALIDATION: Physically test the automatic artifact counting logic.
+ * [ ] INTAKE POWER: Tune `INTAKE_POWER` in `IntakeHardware`.
+ *
+ * SEQUENCES (`ActionManager`):
+ * [ ] TIMING: Tune all `timer.seconds()` durations for transfer and launch sequences.
+ *
+ * GAME & FIELD SPECIFIC:
+ * [ ] FIELD POSES: Verify all autonomous poses in `FieldPosePresets` on a physical field.
+ * [ ] APRILTAG IDS: Verify the AprilTag IDs in `GameState` match the official game manual.
+ * [ ] LIMELIGHT PIPELINES: Ensure Pipelines 0 (AprilTag), 1 (Green), and 2 (Purple) are
+ *     correctly configured in the Limelight web interface.
+ * ---------------------------------------------------------------------------------
  *
  * --- CONTROLLER LAYOUT ---
  *
@@ -32,13 +75,13 @@ import java.util.Optional;
  * Left Stick Y:          Drive Forward/Backward
  * Left Stick X:          Strafe Left/Right
  * Right Stick X:         Turn Robot
- * Right Trigger:         Launch from scoop
+ * Right Trigger:         Launch Staged Artifact from scoop
  * Left Trigger:          Run intake
- * Right Bumper:          Transfer GREEN ball to scoop
- * Left Bumper:           Transfer PURPLE ball to scoop
- * D-Pad Left:            Set pixel diverter to PURPLE path
- * D-Pad Right:           Set pixel diverter to GREEN path
- * D-Pad Up:              Set pixel diverter to NEUTRAL (for clearing jams)
+ * Right Bumper:          Transfer GREEN Artifact to scoop
+ * Left Bumper:           Transfer PURPLE Artifact to scoop
+ * D-Pad Left/Right:      Manually set diverter to PURPLE/GREEN path
+ * D-Pad Up:              Manually set diverter to NEUTRAL
+ * D-Pad Down:            Re-enable auto-diverter mode
  * A Button:              Toggle flywheel motors ON/OFF
  * Y Button:              Toggle turret auto-aim system ON/OFF
  * X Button:              Reset any turret nudge adjustment
@@ -49,7 +92,7 @@ import java.util.Optional;
  * Right Stick X-Axis:    Manual turret rotation override
  * A Button:              Run intake in reverse
  */
-@TeleOp(name = "BozemanTeleop")
+@TeleOp(name = "BozemanTeleop", group = "01 Bozeman")
 public class BozemanTeleop extends OpMode {
 
     private RobotHardwareContainer robot;
@@ -58,18 +101,16 @@ public class BozemanTeleop extends OpMode {
 
     private GameState.Alliance alliance;
 
-    // Button press trackers for edge detection
     private boolean g1_y_pressed, g1_x_pressed, g1_b_pressed, g1_right_bumper_pressed, g1_left_bumper_pressed, g1_a_pressed, g1_start_pressed;
     private boolean was_manually_moving_turret;
 
-    private int green_ball_count = 0;
-    private int purple_ball_count = 0;
+    private enum StagedArtifact { NONE, GREEN, PURPLE }
+    private StagedArtifact stagedArtifact = StagedArtifact.NONE;
+
     private boolean auto_diverter_enabled = true;
 
     @Override
     public void init() {
-        // The RobotHardwareContainer now correctly creates and initializes all hardware,
-        // including the mecanum drive.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         follower = Constants.createFollower(hardwareMap, robot);
         robot.initTurret(follower, hardwareMap);
@@ -113,15 +154,15 @@ public class BozemanTeleop extends OpMode {
 
     @Override
     public void loop() {
-        // Pedro Pathing continues to handle localization.
         follower.update();
-
-        // The other subsystems continue to update.
         actionManager.update();
         robot.turret.update(alliance);
         robot.launcher.update();
 
-        // Correctly drive the robot using the DriverAssist class.
+        if (auto_diverter_enabled) {
+            robot.diverter.update();
+        }
+
         robot.driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, alliance);
 
         handleControls();
@@ -132,8 +173,6 @@ public class BozemanTeleop extends OpMode {
     private void handleControls() {
         // === Gamepad 1: Driver/Operator Controls ===
 
-        // Drive controls are handled by DriverAssist
-
         // Intake
         if (gamepad1.left_trigger > 0.1) {
             robot.intake.run();
@@ -143,51 +182,53 @@ public class BozemanTeleop extends OpMode {
             robot.intake.stop();
         }
 
-        // Transfer and Launch
+        // Transfer and Staging
         if (gamepad1.right_bumper && !g1_right_bumper_pressed) {
-            actionManager.startTransferGreen();
+            actionManager.startTransferGreenArtifact();
+            stagedArtifact = StagedArtifact.GREEN;
         }
         if (gamepad1.left_bumper && !g1_left_bumper_pressed) {
-            actionManager.startTransferPurple();
+            actionManager.startTransferPurpleArtifact();
+            stagedArtifact = StagedArtifact.PURPLE;
         }
 
+        // Launching
         if (gamepad1.right_trigger > 0.1) {
             actionManager.launchFromScoop();
+            if (stagedArtifact == StagedArtifact.GREEN) {
+                robot.diverter.decrementGreenArtifactCount();
+            } else if (stagedArtifact == StagedArtifact.PURPLE) {
+                robot.diverter.decrementPurpleArtifactCount();
+            }
+            stagedArtifact = StagedArtifact.NONE; // Reset after launch
         }
 
         if (gamepad1.a && !g1_a_pressed) robot.launcher.toggleLauncher();
 
         // Turret
-        double turret_input = -gamepad2.right_stick_x; // Fallback manual control on gamepad 2
-
-        boolean is_manually_moving_turret = Math.abs(turret_input) > 0.1;
-
+        double turret_input = -gamepad2.right_stick_x;
+        boolean is_manually_moving_turret = Math.abs( turret_input) > 0.1;
         if (is_manually_moving_turret) {
             robot.turret.setManualControl(turret_input);
         } else if (was_manually_moving_turret) {
             robot.turret.setModeToAuto();
         }
-
         if (gamepad1.x && !g1_x_pressed) robot.turret.resetNudge();
         if (gamepad1.y && !g1_y_pressed) robot.turret.toggleAutoAim();
         if (gamepad1.start && !g1_start_pressed) robot.driverAssist.resetHeading();
 
-        // Diverter
+        // Diverter Manual Override
         if (gamepad1.dpad_left) {
             auto_diverter_enabled = false;
-            actionManager.setDiverterToPurple();
+            robot.diverter.setPosition(DiverterHardware.GatePosition.PURPLE);
         } else if (gamepad1.dpad_right) {
             auto_diverter_enabled = false;
-            actionManager.setDiverterToGreen();
+            robot.diverter.setPosition(DiverterHardware.GatePosition.GREEN);
         } else if (gamepad1.dpad_up) {
             auto_diverter_enabled = false;
-            actionManager.setDiverterToNeutral();
-        } else if (gamepad1.dpad_down) { // Example: use dpad down to re-enable auto diverter
+            robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
+        } else if (gamepad1.dpad_down) {
             auto_diverter_enabled = true;
-        }
-
-        if(auto_diverter_enabled) {
-            handleAutoDiverter();
         }
 
         // Drive Mode
@@ -200,59 +241,7 @@ public class BozemanTeleop extends OpMode {
         }
     }
 
-    private void handleAutoDiverter() {
-        // Set pipeline to detect green balls
-        robot.limelightBallDetector.setPipeline(1);
-        Optional<LLResult.Target> greenBall = robot.limelightBallDetector.getLargestBall();
-
-        // Set pipeline to detect purple balls
-        robot.limelightBallDetector.setPipeline(2);
-        Optional<LLResult.Target> purpleBall = robot.limelightBallDetector.getLargestBall();
-
-        DiverterHardware.GatePosition targetPosition = DiverterHardware.GatePosition.NEUTRAL;
-
-        if (greenBall.isPresent() && purpleBall.isPresent()) {
-            if (greenBall.get().getArea() > purpleBall.get().getArea()) {
-                targetPosition = DiverterHardware.GatePosition.GREEN;
-            } else {
-                targetPosition = DiverterHardware.GatePosition.PURPLE;
-            }
-        } else if (greenBall.isPresent()) {
-            targetPosition = DiverterHardware.GatePosition.GREEN;
-        } else if (purpleBall.isPresent()) {
-            targetPosition = DiverterHardware.GatePosition.PURPLE;
-        }
-
-        // Check if the target track is full
-        if (targetPosition == DiverterHardware.GatePosition.GREEN && green_ball_count >= 2) {
-            targetPosition = DiverterHardware.GatePosition.NEUTRAL;
-        } else if (targetPosition == DiverterHardware.GatePosition.PURPLE && purple_ball_count >= 2) {
-            targetPosition = DiverterHardware.GatePosition.NEUTRAL;
-        }
-
-        robot.diverter.setPosition(targetPosition);
-
-        // Check for jams and increment ball counts
-        if (robot.diverter.isStuck()) {
-            // If stuck, assume the ball is blocking the gate and increment the count for the other side
-            if (targetPosition == DiverterHardware.GatePosition.GREEN) {
-                purple_ball_count++;
-            } else if (targetPosition == DiverterHardware.GatePosition.PURPLE) {
-                green_ball_count++;
-            }
-            robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
-        } else {
-            // If not stuck, assume the ball was sorted correctly
-            if (targetPosition == DiverterHardware.GatePosition.GREEN) {
-                green_ball_count++;
-            } else if (targetPosition == DiverterHardware.GatePosition.PURPLE) {
-                purple_ball_count++;
-            }
-        }
-    }
-
     private void updateButtonStates() {
-        // Gamepad 1
         g1_y_pressed = gamepad1.y;
         g1_x_pressed = gamepad1.x;
         g1_a_pressed = gamepad1.a;
@@ -269,13 +258,11 @@ public class BozemanTeleop extends OpMode {
         telemetry.addData("Alliance", alliance.toString());
         telemetry.addData("Drive Mode", robot.driverAssist.getMode().toString());
         telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
-        telemetry.addData("Launcher Target RPM", "%.0f", robot.launcher.getCurrentTargetVelocity());
         telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
-        telemetry.addData("Turret Current (A)", "%.2f", robot.turret.getTurretCurrent());
-        telemetry.addData("Intake Current (A)", "%.2f", robot.intake.getIntakeCurrent());
         telemetry.addData("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
-        telemetry.addData("Green Balls", green_ball_count);
-        telemetry.addData("Purple Balls", purple_ball_count);
+        telemetry.addData("Staged Artifact", stagedArtifact.toString());
+        telemetry.addData("Green Artifacts", robot.diverter.getGreenArtifactCount());
+        telemetry.addData("Purple Artifacts", robot.diverter.getPurpleArtifactCount());
         telemetry.addData("Diverter is Stuck", robot.diverter.isStuck());
 
         Pose currentPose = follower.getPose();

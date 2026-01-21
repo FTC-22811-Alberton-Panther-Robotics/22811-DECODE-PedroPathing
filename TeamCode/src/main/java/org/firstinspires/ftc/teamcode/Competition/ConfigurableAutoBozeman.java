@@ -1,14 +1,15 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
-import com.pedropathing.geometry.BezierLine;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
+import org.firstinspires.ftc.teamcode.RobotHardware.DiverterHardware; // Added missing import
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
@@ -18,8 +19,43 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-@Autonomous(name = "ConfigurableAuto Test", group = "01 Helena", preselectTeleOp = "HelenaTeleOp_Test")
-public class ConfigurableAuto_Test extends OpMode {
+/**
+ * ---------------------------------------------------------------------------------
+ * --- CONFIGURABLE AUTONOMOUS --- HOW TO USE ---
+ * ---------------------------------------------------------------------------------
+ * This OpMode allows you to build a custom sequence of autonomous commands during the
+ * `init` phase, providing maximum flexibility for different strategies.
+ *
+ * -- INIT-LOOP CONFIGURATION MENU --
+ * 1. Alliance & Start Position:
+ *    - D-Pad Up/Down: Select BLUE or RED alliance.
+ *    - Left/Right Bumper: Select FRONT or BACK starting position.
+ * 2. Playlist Builder:
+ *    - D-Pad Left/Right: Cycle through the list of available `AutoCommand`s.
+ *    - A Button: Add the currently selected command to the end of your playlist.
+ *    - B Button: Remove the last command you added.
+ *    - Y Button: Clear the entire playlist.
+ *    - X Button: Lock in your settings and finalize the playlist. The robot is now ready.
+ *
+ * -- STATE MACHINE & LOGIC --
+ * - The OpMode uses a state machine (`pathState`) to execute the commands in the playlist.
+ * - Simple commands (like driving to a spike mark) run until the path is complete.
+ * - Complex commands (like SCORE or INTAKE_CYCLE) use their own series of sub-states
+ *   (e.g., 100-series for scoring) to perform multi-step actions.
+ * - All timed actions (like running the intake or transfer) are handled by the `ActionManager`.
+ *
+ * -- AUTONOMOUS-SPECIFIC CHECKLIST --
+ * [ ] (CRITICAL) FIELD POSES: All poses in `FieldPosePresets.java` MUST be accurately
+ *     measured and verified on a physical field for this OpMode to work.
+ * [ ] INTAKE CYCLE: The `INTAKE_OFFSET_DISTANCE` and color orders must be tested and
+ *     tuned to ensure the robot can reliably perform a multi-artifact intake cycle.
+ * [ ] ACTION MANAGER TIMING: All timed sequences in `ActionManager` (transfer, scoop)
+ *     must be tuned for this OpMode to run at the correct speed.
+ * [ ] GAME STATE: The AprilTag IDs in `GameState.java` must be correct for the season.
+ * ---------------------------------------------------------------------------------
+ */
+@Autonomous(name = "ConfigurableAuto Bozeman", group = "01 Bozeman", preselectTeleOp = "BozemanTeleop")
+public class ConfigurableAutoBozeman extends OpMode {
 
     // ========== CONFIGURATION ========== 
     private enum StartPosition { FRONT, BACK } 
@@ -59,7 +95,7 @@ public class ConfigurableAuto_Test extends OpMode {
     private int pathState = 0;
 
     // --- Intake Cycle Specific Variables ---
-    private int intakeCycleBallCount = 0;
+    private int intakeCycleArtifactCount = 0;
     private List<Character> intakeColorOrder = new ArrayList<>();
     private final List<Character> SPIKE_FRONT_COLORS = Arrays.asList('G', 'P', 'P');
     private final List<Character> SPIKE_MIDDLE_COLORS = Arrays.asList('P', 'G', 'P');
@@ -75,7 +111,7 @@ public class ConfigurableAuto_Test extends OpMode {
         robot.initLauncher(follower, robot.turret, hardwareMap);
         actionManager = new ActionManager(robot);
 
-        telemetry.addLine("--- Playlist Autonomous Builder (TEST) ---");
+        telemetry.addLine("--- Playlist Autonomous Builder ---");
         telemetry.addLine("D-Pad U/D: Alliance | Bumpers: Start Pos");
         telemetry.addLine("D-Pad L/R: Select | A: Add | B: Remove Last");
         telemetry.addLine("X: Finalize/Lock | Y: Clear All");
@@ -180,7 +216,7 @@ public class ConfigurableAuto_Test extends OpMode {
             case 2: if (!follower.isBusy() && !actionManager.isBusy()) advanceToNextCommand(); break;
 
             // Scoring Sub-States (100-series)
-            case 100: if (!follower.isBusy()) { actionManager.startSmartLaunch(GameState.obeliskPattern); setPathState(101); } break;
+            case 100: if (!follower.isBusy()) { actionManager.launchFromScoop(); setPathState(101); } break;
             case 101: if (!actionManager.isBusy()) advanceToNextCommand(); break;
 
             // Gate Hitting Sub-States (200-series)
@@ -189,10 +225,10 @@ public class ConfigurableAuto_Test extends OpMode {
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
             // Intake Cycle Sub-States (300-series)
-            case 300: intakeCycleBallCount = 0; setPathState(301); break;
+            case 300: intakeCycleArtifactCount = 0; setPathState(301); break;
             case 301: if (!actionManager.isBusy()) { setDiverterForIntake(); setPathState(302); } break;
             case 302: actionManager.startIntake(); setPathState(303); break;
-            case 303: if (!actionManager.isBusy()) { intakeCycleBallCount++; if (intakeCycleBallCount >= 3) { advanceToNextCommand(); } else { moveToNextPixel(); setPathState(301); } } break;
+            case 303: if (!actionManager.isBusy()) { intakeCycleArtifactCount++; if (intakeCycleArtifactCount >= 3) { advanceToNextCommand(); } else { moveToNextArtifact(); setPathState(301); } } break;
 
             case -1: default: follower.breakFollowing(); break;
         }
@@ -230,14 +266,14 @@ public class ConfigurableAuto_Test extends OpMode {
     }
 
     private void setDiverterForIntake() {
-        char expectedColor = intakeColorOrder.get(intakeCycleBallCount);
-        if (expectedColor == 'P') actionManager.setDiverterToPurple(); else actionManager.setDiverterToGreen();
+        char expectedColor = intakeColorOrder.get(intakeCycleArtifactCount);
+        if (expectedColor == 'P') robot.diverter.setPosition(DiverterHardware.GatePosition.PURPLE); else robot.diverter.setPosition(DiverterHardware.GatePosition.GREEN);
     }
 
-    private void moveToNextPixel() {
+    private void moveToNextArtifact() {
         double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
-        Pose nextBallPose = follower.getPose().plus(new Pose(0, offset, 0));
-        followPath(nextBallPose);
+        Pose nextArtifactPose = follower.getPose().plus(new Pose(0, offset, 0));
+        followPath(nextArtifactPose);
     }
 
     private void setIntakeColorOrder() {
@@ -248,7 +284,7 @@ public class ConfigurableAuto_Test extends OpMode {
 
     private void updateInitTelemetry(AutoCommand[] allCommands) {
         telemetry.clearAll();
-        telemetry.addLine("--- Playlist Autonomous Builder (TEST) ---");
+        telemetry.addLine("--- Playlist Autonomous Builder ---");
         telemetry.addData("Alliance", alliance).addData("Start", startPosition);
         telemetry.addLine();
         telemetry.addLine("SELECTED: [" + allCommands[commandMenuIndex] + "] (Press A to Add)");
