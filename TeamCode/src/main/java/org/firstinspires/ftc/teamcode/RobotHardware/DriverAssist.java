@@ -6,8 +6,26 @@ import com.pedropathing.math.MathFunctions;
 
 /**
  * A helper class to manage advanced TeleOp driving features like field-centric
- * drive and target-locking headings. This has been refactored to work correctly
- * with the Pedro Pathing library's internal field-centric calculations.
+ * drive and target-locking headings. This class acts as an intelligent layer between
+ * the driver's joystick inputs and the Pedro Pathing Follower, which handles the
+ * underlying drive calculations.
+ *
+ * ---------------------------------------------------------------------------------
+ * --- TESTING, TUNING, AND CONFIGURATION ---
+ * ---------------------------------------------------------------------------------
+ * 1. Drive Modes:
+ *    - ROBOT_CENTRIC: Standard, intuitive control. Forward on the joystick is always
+ *      the front of the robot.
+ *    - FIELD_CENTRIC: Forward on the joystick is always "downfield," away from the
+ *      driver station, regardless of the robot's orientation.
+ *    - TARGET_LOCK: A specialized field-centric mode where the robot will always try
+ *      to turn and face the alliance goal. The driver's turning input is ignored.
+ *
+ * 2. Heading Kp: The `HEADING_KP` constant is a proportional gain for the Target Lock
+ *    mode. It determines how aggressively the robot turns to stay locked onto the
+ *    goal. If the robot is sluggish, increase this value. If it overshoots and
+ *    oscillates, decrease this value.
+ * ---------------------------------------------------------------------------------
  */
 public class DriverAssist {
 
@@ -20,6 +38,7 @@ public class DriverAssist {
     }
     private DriveMode currentMode = DriveMode.ROBOT_CENTRIC;
 
+    // TODO: Tune this Kp value for responsive but stable target locking.
     private static final double HEADING_KP = 0.8;
 
     public DriverAssist(Follower follower) {
@@ -86,6 +105,10 @@ public class DriverAssist {
     }
 
 
+    /**
+     * Resets the robot's heading in the localization system. This is useful if the robot
+     * gets bumped or its orientation becomes inaccurate.
+     */
     public void resetHeading() {
         Pose currentPose = follower.getPose();
         if (currentPose != null) {

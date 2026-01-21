@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 
 // Alt f4 yourself NOW!-
-@TeleOp(name="Limelight test", group="01 Kalispell")
+@TeleOp(name="Limelight test", group="Test")
 public class SimpleLimelightCode extends OpMode {
     private Limelight3A limelight;
     private IMU imu;

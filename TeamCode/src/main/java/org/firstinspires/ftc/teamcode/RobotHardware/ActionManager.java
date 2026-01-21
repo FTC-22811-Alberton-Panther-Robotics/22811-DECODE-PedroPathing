@@ -4,7 +4,14 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
  * ActionManager is the definitive, unified class for controlling all robot mechanisms.
- * It is built as a state machine to handle complex, multi-step sequences like shooting and intaking.
+ * It is built as a state machine to handle complex, multi-step sequences like launching and intaking.
+ * ---------------------------------------------------------------------------------
+ * --- TESTING, TUNING, AND CONFIGURATION ---
+ * ---------------------------------------------------------------------------------
+ * 1. Timed Actions: The durations for each step in the state machine (e.g., how long
+ *    to run the transfer belt) are critical. These times in the `update()` method
+ *    must be tuned to match the physical robot's performance to ensure reliability.
+ * ---------------------------------------------------------------------------------
  */
 public class ActionManager {
 
@@ -15,10 +22,10 @@ public class ActionManager {
     public enum ActionState {
         IDLE,
         INTAKING,
-        SHOOT_TRANSFER_LEFT,
-        SHOOT_TRANSFER_RIGHT,
-        SHOOT_SCOOP,
-        WAITING_FOR_AUTO_ACTION // A generic state for simple, timed auto commands
+        TRANSFER_GREEN_ARTIFACT_TO_SCOOP,
+        TRANSFER_PURPLE_ARTIFACT_TO_SCOOP,
+        LAUNCH_FROM_SCOOP,
+        WAITING_FOR_AUTO_ACTION
     }
     private ActionState currentState = ActionState.IDLE;
 
@@ -26,58 +33,50 @@ public class ActionManager {
         this.robot = robot;
     }
 
-    /**
-     * This is the heart of the manager. It must be called in every loop of an OpMode.
-     */
     public void update() {
         switch (currentState) {
             case IDLE:
                 break;
 
             case WAITING_FOR_AUTO_ACTION:
-                if (timer.seconds() > 1.0) { // Default time for simple auto actions
+                if (timer.seconds() > 1.0) {
                     stopAll();
                 }
                 break;
 
             case INTAKING:
-                if (timer.seconds() > 2.0) { // Run intake for a short burst
+                // TODO: Tune the duration for the intake burst.
+                if (timer.seconds() > 2.0) {
                     robot.intake.stop();
                     currentState = ActionState.IDLE;
                 }
                 break;
 
-            case SHOOT_TRANSFER_LEFT:
-                // After a longer delay, move the scoop up to meet the pixel.
-                if (!scoopHasBeenMoved && timer.seconds() > 1.0) {
-                    robot.scoop.ballUp();
-                    scoopHasBeenMoved = true;
-                }
-                // After the full duration, return the transfer mechanism.
+            case TRANSFER_PURPLE_ARTIFACT_TO_SCOOP:
+                // TODO: Tune the duration for the purple artifact transfer.
                 if (timer.seconds() > 1.2) {
                     robot.transfer.LeftTransferReturn();
-                    currentState = ActionState.SHOOT_SCOOP;
-                    timer.reset();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case SHOOT_TRANSFER_RIGHT:
-                // After a longer delay, move the scoop up to meet the pixel.
-                if (!scoopHasBeenMoved && timer.seconds() > 1.0) {
-                    robot.scoop.ballUp();
-                    scoopHasBeenMoved = true;
-                }
-                // After the full duration, return the transfer mechanism.
+            case TRANSFER_GREEN_ARTIFACT_TO_SCOOP:
+                // TODO: Tune the duration for the green artifact transfer.
                 if (timer.seconds() > 1.2) {
                     robot.transfer.RightTransferReturn();
-                    currentState = ActionState.SHOOT_SCOOP;
-                    timer.reset();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case SHOOT_SCOOP:
+            case LAUNCH_FROM_SCOOP:
+                if (!scoopHasBeenMoved) {
+                    robot.scoop.up();
+                    scoopHasBeenMoved = true;
+                    timer.reset();
+                }
+                // TODO: Tune the duration for the scoop launch sequence.
                 if (timer.seconds() > 0.67) {
-                    robot.scoop.ballDown();
+                    robot.scoop.down();
                     currentState = ActionState.IDLE;
                 }
                 break;
@@ -86,35 +85,27 @@ public class ActionManager {
 
     // ----- PUBLIC METHODS FOR TELEOP AND AUTO -----
 
-    public void startGreenBallShoot() {
+    public void startTransferGreenArtifact() {
         if (isBusy()) return;
-        scoopHasBeenMoved = false;
-        currentState = ActionState.SHOOT_TRANSFER_RIGHT;
+        currentState = ActionState.TRANSFER_GREEN_ARTIFACT_TO_SCOOP;
         robot.transfer.runRight();
         timer.reset();
     }
 
-    public void startPurpleBallShoot() {
+    public void startTransferPurpleArtifact() {
         if (isBusy()) return;
-        scoopHasBeenMoved = false;
-        currentState = ActionState.SHOOT_TRANSFER_LEFT;
+        currentState = ActionState.TRANSFER_PURPLE_ARTIFACT_TO_SCOOP;
         robot.transfer.runLeft();
         timer.reset();
     }
 
-    public void setDiverterToGreen() {
-        robot.diverter.setPosition(DiverterHardware.GatePosition.GREEN);
+    public void launchFromScoop() {
+        if (isBusy()) return;
+        scoopHasBeenMoved = false;
+        currentState = ActionState.LAUNCH_FROM_SCOOP;
+        timer.reset();
     }
 
-    public void setDiverterToPurple() {
-        robot.diverter.setPosition(DiverterHardware.GatePosition.PURPLE);
-    }
-
-    public void setDiverterToNeutral() {
-        robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
-    }
-
-    // Generic actions for the autonomous playlist
     public void startIntake() {
         if(isBusy()) return;
         currentState = ActionState.WAITING_FOR_AUTO_ACTION;
@@ -122,24 +113,12 @@ public class ActionManager {
         timer.reset();
     }
 
-    public void startLaunch() {
-        if (isBusy()) return;
-        currentState = ActionState.WAITING_FOR_AUTO_ACTION;
-        timer.reset();
-    }
-
     /**
-     * A specific, controlled action to clear pixel jams.
-     * It reverses the intake and sets the diverter to a neutral position.
+     * A specific, controlled action to clear Artifact jams.
      */
     public void clearJam() {
         robot.intake.reverse();
-        robot.diverter.setNeutral();
-    }
-
-    public void startSmartLaunch(GameState.ObeliskPattern pattern) {
-        if (isBusy()) return;
-        startPurpleBallShoot(); 
+        robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
     }
 
     public void stopAll() {
@@ -147,7 +126,7 @@ public class ActionManager {
         robot.launcher.stop();
         robot.transfer.LeftTransferReturn();
         robot.transfer.RightTransferReturn();
-        robot.scoop.ballDown();
+        robot.scoop.down();
         currentState = ActionState.IDLE;
     }
 

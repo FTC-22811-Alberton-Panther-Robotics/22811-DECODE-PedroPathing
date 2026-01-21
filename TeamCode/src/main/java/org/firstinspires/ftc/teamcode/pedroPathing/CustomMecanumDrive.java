@@ -14,27 +14,56 @@ import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigu
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * This is a custom drivetrain implementation that integrates with the Pedro Pathing library.
+ * It tells the library how to control your specific robot's mecanum wheels.
+ * <p>
+ * ---------------------------------------------------------------------------------
+ * --- TESTING, TUNING, AND CONFIGURATION ---
+ * ---------------------------------------------------------------------------------
+ * This class, especially the inner `CustomDriveConstants`, holds the most fundamental
+ * tuning values for your robot's movement.
+ *
+ * 1. Motor Directions: These MUST be set correctly. If your robot moves in the wrong
+ *    direction (e.g., turns when it should strafe), you need to reverse the appropriate
+ *    motor directions here.
+ *
+ * 2. Velocity Constants: `X_VELOCITY` and `Y_VELOCITY` are your robot's maximum
+ *    theoretical speeds in inches per second. These are typically found using the
+ *    `DriveTuning` OpMode provided by the Pedro Pathing library. Accurate values here
+ *    are critical for the path follower to generate smooth and accurate paths.
+ *
+ * 3. Static Friction: `staticFrictionCoefficient` is a value that helps the library
+ *    overcome the initial static friction of your drivetrain, preventing the robot from
+ *    stalling at very low power commands. This is also found via the tuning OpMode.
+ * ---------------------------------------------------------------------------------
+ */
 public class CustomMecanumDrive extends Drivetrain {
 
-    // Encapsulated constants class for the custom drivetrain
+    /**
+     * This inner class holds all the tuning constants for the drivetrain.
+     * Encapsulating them here makes them easy to find and adjust.
+     */
     public static class CustomDriveConstants {
-        // Motor names in hardware configuration
+        // TODO: Verify these motor names match your robot's configuration.
         public final String LEFT_FRONT_MOTOR_NAME = "leftFrontDrive";
         public final String LEFT_BACK_MOTOR_NAME = "leftBackDrive";
         public final String RIGHT_FRONT_MOTOR_NAME = "rightFrontDrive";
         public final String RIGHT_BACK_MOTOR_NAME = "rightBackDrive";
 
-        // Motor directions that work for your robot
+        // TODO: Set these directions correctly for your robot. Test by driving in TeleOp.
         public final DcMotor.Direction LEFT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
         public final DcMotor.Direction LEFT_BACK_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
         public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
         public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
 
-        public double X_VELOCITY = 58.291667307455704;
-        public double Y_VELOCITY = 58.291667307455704;
+        // TODO: These values MUST be tuned using the library's DriveTuning OpMode.
+        public double X_VELOCITY = 58.291667307455704; // Max X velocity (inches/sec)
+        public double Y_VELOCITY = 58.291667307455704; // Max Y velocity (inches/sec)
 
         public final String VOLTAGE_SENSOR_NAME = "Control Hub";
 
+        // This converts your max X and Y velocities into a vector for the library's calculations.
         private final double[] convertToPolar = Pose.cartesianToPolar(X_VELOCITY, -Y_VELOCITY);
         public final Vector frontLeftVector = new Vector(convertToPolar[0], convertToPolar[1]).normalize();
 
