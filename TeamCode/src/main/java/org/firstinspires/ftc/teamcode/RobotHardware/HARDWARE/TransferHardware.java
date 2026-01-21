@@ -11,7 +11,7 @@ public class TransferHardware {
     private static final double RETURN = 0;
 
     public void init(HardwareMap hardwareMap){
-        rightTransfer = hardwareMap.get(Servo.class, "rightTransfer");
+        rightTransfer = hardwareMap.get(Servo.class, "rightT ransfer");
         leftTransfer = hardwareMap.get(Servo.class,"leftTransfer");
         stop(); // Ensure it's off at init
     }

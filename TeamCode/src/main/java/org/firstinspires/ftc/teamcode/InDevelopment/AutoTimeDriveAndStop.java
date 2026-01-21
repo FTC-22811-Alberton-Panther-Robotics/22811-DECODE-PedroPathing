@@ -4,12 +4,12 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.MecanumHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.MecanumHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
 
 
-@Autonomous(name="ButteTimeAuto", group="01 Butte", preselectTeleOp="Butte2Controller")
-public class ButteTimeAuto extends OpMode{
+@Autonomous(name="AutoTimeDriveAndStop", group="Bozeman", preselectTeleOp="BozemanTeleop")
+public class AutoTimeDriveAndStop extends OpMode{
     //LauncherHardware launcherHardware = new LauncherHardware();
     //intakeHardware intakeHardware = new intakeHardware();
     MecanumHardware mecanumHardware = new MecanumHardware();

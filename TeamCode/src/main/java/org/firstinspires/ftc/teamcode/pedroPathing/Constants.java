@@ -1,87 +1,82 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
-import com.pedropathing.control.FilteredPIDFCoefficients;
-import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.localization.Localizer;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.math.Vector;
 import com.pedropathing.paths.PathConstraints;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 
-// Import our new custom constants class
-import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointConstants;
-
+/**
+ * This class centralizes the creation and configuration of the Pedro Pathing Follower.
+ * It defines the robot's physical constants and path constraints, and it provides
+ * a single, consistent way to build a Follower instance for any OpMode.
+ * <p>
+ * ---------------------------------------------------------------------------------
+ * --- HOW IT WORKS ---
+ * ---------------------------------------------------------------------------------
+ * The `Follower` is the main engine of the pathing library. It needs to know about
+ * the robot's physical properties (`FollowerConstants`), its movement limits
+ * (`PathConstraints`), how its drivetrain works (`CustomMecanumDrive`), and how it
+ * knows its position on the field (`Localizer`).
+ * <p>
+ * This class uses the `FollowerBuilder` pattern to construct a `Follower` instance.
+ * Crucially, it gets the `Localizer` from our `RobotHardwareContainer`, ensuring that
+ * every part of the code that needs to know the robot's position is using the same
+ * single source of truth—our `CombinedLocalizer`.
+ * <p>
+ * The overloaded `createFollower` method is a specific workaround to support the library's
+ * built-in tuning OpModes, which don't know about our `RobotHardwareContainer` structure.
+ * ---------------------------------------------------------------------------------
+ */
 public class Constants {
-    // ADDED: Master switch for robot configuration
-    public static final boolean IS_COMPETITION_BOT = false;
 
+    // TODO: Tune these constants for your robot's specific physical properties and desired behavior.
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(9.35)
-            .forwardZeroPowerAcceleration(-35)
-            .lateralZeroPowerAcceleration(-58)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0.01, 0.02))
-            .headingPIDFCoefficients(new PIDFCoefficients(1, 0, .1, 0.06))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.01, 0.6, 0.03));
+            .mass(13.11); // Robot mass at 28.9 lbs, converted to kg.
 
-    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
-
-    public static class CustomDriveConstants {
-        public final String LEFT_FRONT_MOTOR_NAME = "leftFrontDrive";
-        public final String LEFT_BACK_MOTOR_NAME = "leftBackDrive";
-        public final String RIGHT_FRONT_MOTOR_NAME = "rightFrontDrive";
-        public final String RIGHT_BACK_MOTOR_NAME = "rightBackDrive";
-
-        public final DcMotor.Direction LEFT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
-        public final DcMotor.Direction LEFT_BACK_MOTOR_DIRECTION = DcMotor.Direction.REVERSE;
-        public final DcMotor.Direction RIGHT_FRONT_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
-        public final DcMotor.Direction RIGHT_BACK_MOTOR_DIRECTION = DcMotor.Direction.FORWARD;
-
-        public double X_VELOCITY = 60.4577684779282;
-        public double Y_VELOCITY = 48.871302326833174; // Set to X initially, tune if needed
-
-        public final String VOLTAGE_SENSOR_NAME = "Control Hub";
-
-        private final double[] convertToPolar = Pose.cartesianToPolar(X_VELOCITY, -Y_VELOCITY);
-        public final Vector frontLeftVector = new Vector(convertToPolar[0], convertToPolar[1]).normalize();
-
-        public double maxPower = 1.0;
-        public double motorCachingThreshold = 0.01;
-        public boolean useBrakeModeInTeleOp = false;
-        public boolean useVoltageCompensation = false;
-        public double nominalVoltage = 12.0;
-        public double staticFrictionCoefficient = 0.1;
-    }
-
-    public static CustomDriveConstants customDriveConstants = new CustomDriveConstants();
-
-    // CORRECTED: Use our new, custom constants class
-    public static CustomPinpointConstants localizerConstants = new CustomPinpointConstants()
-            .forwardPodY(-3.13)
-            .strafePodX(-6.2)
-            .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("pinpoint")
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+    public static PathConstraints pathConstraints = new PathConstraints(
+            0.99, // Max velocity percentage
+            100,  // Max acceleration
+            1,    // De-acceleration ramp (don't change)
+            1     // De-acceleration ramp (don't change)
+    );
 
     /**
-     * Creates a Follower instance with the new CombinedLocalizer.
-     * @param hardwareMap The hardware map from the OpMode.
-     * @param localizer The fused localizer instance from the RobotHardwareContainer.
-     * @return A configured Follower instance.
+     * Overloaded method for creating a Follower with a specific Localizer. This is
+     * specifically designed to support the library's internal Tuning OpMode without
+     * requiring modifications to that file.
      */
     public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
+        // If the localizer from Tuning.java is null, create a new default one on the fly.
+        if (localizer == null) {
+            CustomPinpointLocalizer pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointConstants());
+            LimelightAprilTagLocalizer limelight = new LimelightAprilTagLocalizer();
+            limelight.init(hardwareMap);
+            localizer = new CombinedLocalizer(pinpoint, limelight);
+        }
+
         return new FollowerBuilder(followerConstants, hardwareMap)
-                .setLocalizer(localizer) // Use the fused localizer
+                .setDrivetrain(new CustomMecanumDrive(hardwareMap, new CustomMecanumDrive.CustomDriveConstants()))
+                .setLocalizer(localizer)
                 .pathConstraints(pathConstraints)
-                .setDrivetrain(new CustomMecanumDrive(hardwareMap, customDriveConstants))
+                .build();
+    }
+
+    /**
+     * Creates and configures a Follower instance for competition OpModes using the
+     * centralized localizer from the RobotHardwareContainer.
+     * @param hardwareMap The hardwareMap from the OpMode.
+     * @param robot The instance of the RobotHardwareContainer.
+     * @return A fully initialized Follower instance.
+     */
+    public static Follower createFollower(HardwareMap hardwareMap, RobotHardwareContainer robot) {
+        return new FollowerBuilder(followerConstants, hardwareMap)
+                .setDrivetrain(new CustomMecanumDrive(hardwareMap, new CustomMecanumDrive.CustomDriveConstants()))
+                .setLocalizer(robot.localizer) // Use the single source of truth
+                .pathConstraints(pathConstraints)
                 .build();
     }
 }

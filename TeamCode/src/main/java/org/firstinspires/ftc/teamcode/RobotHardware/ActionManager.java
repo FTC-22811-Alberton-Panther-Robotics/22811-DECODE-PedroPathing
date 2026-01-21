@@ -2,101 +2,135 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.ColorDiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.intakeHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.LauncherHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.HARDWARE.TransferHardware;
-
+/**
+ * ActionManager is the definitive, unified class for controlling all robot mechanisms.
+ * It is built as a state machine to handle complex, multi-step sequences like launching and intaking.
+ * ---------------------------------------------------------------------------------
+ * --- TESTING, TUNING, AND CONFIGURATION ---
+ * ---------------------------------------------------------------------------------
+ * 1. Timed Actions: The durations for each step in the state machine (e.g., how long
+ *    to run the transfer belt) are critical. These times in the `update()` method
+ *    must be tuned to match the physical robot's performance to ensure reliability.
+ * ---------------------------------------------------------------------------------
+ */
 public class ActionManager {
 
     private final RobotHardwareContainer robot;
-    private final intakeHardware intake;
-    private final LauncherHardware launcher;
-    private final TransferHardware transfer;
-    // The ColorDiverterHardware is nullable, as it may not exist on all robot configurations.
-    private final ColorDiverterHardware colorDiverter;
-    private final ElapsedTime actionTimer = new ElapsedTime();
+    private final ElapsedTime timer = new ElapsedTime();
+    private boolean scoopHasBeenMoved = false;
 
     public enum ActionState {
         IDLE,
         INTAKING,
-        LAUNCHING_SPINUP,
-        LAUNCHING_FIRE,
-        REVERSING,
-        ACTION_COMPLETE,
-
+        TRANSFER_GREEN_ARTIFACT_TO_SCOOP,
+        TRANSFER_PURPLE_ARTIFACT_TO_SCOOP,
+        LAUNCH_FROM_SCOOP,
+        WAITING_FOR_AUTO_ACTION
     }
     private ActionState currentState = ActionState.IDLE;
 
-    public ActionManager(RobotHardwareContainer robotContainer) {
-        this.robot = robotContainer;
-        this.intake = robot.intake;
-        this.launcher = robot.launcher;
-        this.transfer = robot.transfer;
-        this.colorDiverter = robot.colorDiverter; // This can be null
+    public ActionManager(RobotHardwareContainer robot) {
+        this.robot = robot;
     }
 
     public void update() {
         switch (currentState) {
-            case IDLE: case ACTION_COMPLETE: case REVERSING:
-                break; // No timed logic in these states
+            case IDLE:
+                break;
+
+            case WAITING_FOR_AUTO_ACTION:
+                if (timer.seconds() > 1.0) {
+                    stopAll();
+                }
+                break;
 
             case INTAKING:
-                if (actionTimer.seconds() > 2.5) { // Tune this time
-                    stopAll();
-                    currentState = ActionState.ACTION_COMPLETE;
+                // TODO: Tune the duration for the intake burst.
+                if (timer.seconds() > 2.0) {
+                    robot.intake.stop();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case LAUNCHING_SPINUP:
-                if (launcher.isAtTargetSpeed()) {
-                    actionTimer.reset();
-                    currentState = ActionState.LAUNCHING_FIRE;
+            case TRANSFER_PURPLE_ARTIFACT_TO_SCOOP:
+                // TODO: Tune the duration for the purple artifact transfer.
+                if (timer.seconds() > 1.2) {
+                    robot.transfer.LeftTransferReturn();
+                    currentState = ActionState.IDLE;
                 }
                 break;
 
-            case LAUNCHING_FIRE:
-                if (actionTimer.seconds() > 2.0) { // Tune this time
-                    stopAll();
-                    currentState = ActionState.ACTION_COMPLETE;
+            case TRANSFER_GREEN_ARTIFACT_TO_SCOOP:
+                // TODO: Tune the duration for the green artifact transfer.
+                if (timer.seconds() > 1.2) {
+                    robot.transfer.RightTransferReturn();
+                    currentState = ActionState.IDLE;
+                }
+                break;
+
+            case LAUNCH_FROM_SCOOP:
+                if (!scoopHasBeenMoved) {
+                    robot.scoop.up();
+                    scoopHasBeenMoved = true;
+                    timer.reset();
+                }
+                // TODO: Tune the duration for the scoop launch sequence.
+                if (timer.seconds() > 0.67) {
+                    robot.scoop.down();
+                    currentState = ActionState.IDLE;
                 }
                 break;
         }
     }
 
-    // ----- Public Methods to Trigger Actions -----
+    // ----- PUBLIC METHODS FOR TELEOP AND AUTO -----
+
+    public void startTransferGreenArtifact() {
+        if (isBusy()) return;
+        currentState = ActionState.TRANSFER_GREEN_ARTIFACT_TO_SCOOP;
+        robot.transfer.runRight();
+        timer.reset();
+    }
+
+    public void startTransferPurpleArtifact() {
+        if (isBusy()) return;
+        currentState = ActionState.TRANSFER_PURPLE_ARTIFACT_TO_SCOOP;
+        robot.transfer.runLeft();
+        timer.reset();
+    }
+
+    public void launchFromScoop() {
+        if (isBusy()) return;
+        scoopHasBeenMoved = false;
+        currentState = ActionState.LAUNCH_FROM_SCOOP;
+        timer.reset();
+    }
 
     public void startIntake() {
-        if (isBusy()) return;
-        currentState = ActionState.INTAKING;
-        intake.run();
-        actionTimer.reset();
+        if(isBusy()) return;
+        currentState = ActionState.WAITING_FOR_AUTO_ACTION;
+        robot.intake.run();
+        timer.reset();
     }
 
-    public void startLaunch() {
-        if (isBusy()) return;
-        currentState = ActionState.LAUNCHING_SPINUP;
-        launcher.spinUp();
-    }
-
-    public void reverseAll() {
-        currentState = ActionState.REVERSING;
-        intake.reverse();
-        launcher.reverse();
-    }
-
-    public boolean isBusy() {
-        return currentState != ActionState.IDLE && currentState != ActionState.ACTION_COMPLETE;
-    }
-
-    public void completeAction() {
-        currentState = ActionState.IDLE;
+    /**
+     * A specific, controlled action to clear Artifact jams.
+     */
+    public void clearJam() {
+        robot.intake.reverse();
+        robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
     }
 
     public void stopAll() {
-        intake.stop();
-        launcher.stop();
-        transfer.stop();
+        robot.intake.stop();
+        robot.launcher.stop();
+        robot.transfer.LeftTransferReturn();
+        robot.transfer.RightTransferReturn();
+        robot.scoop.down();
         currentState = ActionState.IDLE;
+    }
+
+    public boolean isBusy() {
+        return currentState != ActionState.IDLE;
     }
 }

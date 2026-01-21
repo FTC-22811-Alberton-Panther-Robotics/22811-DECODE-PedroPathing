@@ -6,20 +6,39 @@ import com.pedropathing.math.MathFunctions;
 
 /**
  * A helper class to manage advanced TeleOp driving features like field-centric
- * drive and target-locking headings.
+ * drive and target-locking headings. This class acts as an intelligent layer between
+ * the driver's joystick inputs and the Pedro Pathing Follower, which handles the
+ * underlying drive calculations.
+ *
+ * ---------------------------------------------------------------------------------
+ * --- TESTING, TUNING, AND CONFIGURATION ---
+ * ---------------------------------------------------------------------------------
+ * 1. Drive Modes:
+ *    - ROBOT_CENTRIC: Standard, intuitive control. Forward on the joystick is always
+ *      the front of the robot.
+ *    - FIELD_CENTRIC: Forward on the joystick is always "downfield," away from the
+ *      driver station, regardless of the robot's orientation.
+ *    - TARGET_LOCK: A specialized field-centric mode where the robot will always try
+ *      to turn and face the alliance goal. The driver's turning input is ignored.
+ *
+ * 2. Heading Kp: The `HEADING_KP` constant is a proportional gain for the Target Lock
+ *    mode. It determines how aggressively the robot turns to stay locked onto the
+ *    goal. If the robot is sluggish, increase this value. If it overshoots and
+ *    oscillates, decrease this value.
+ * ---------------------------------------------------------------------------------
  */
 public class DriverAssist {
 
     private final Follower follower;
 
     public enum DriveMode {
-        ROBOT_CENTRIC, // Standard controls, relative to the robot's front.
-        FIELD_CENTRIC, // Controls are relative to the field, not the robot.
-        TARGET_LOCK    // Field-centric with automatic heading alignment to a target.
+        ROBOT_CENTRIC,
+        FIELD_CENTRIC,
+        TARGET_LOCK
     }
     private DriveMode currentMode = DriveMode.ROBOT_CENTRIC;
 
-    // Proportional gain for the target-lock heading controller. This can be tuned.
+    // TODO: Tune this Kp value for responsive but stable target locking.
     private static final double HEADING_KP = 0.8;
 
     public DriverAssist(Follower follower) {
@@ -35,75 +54,70 @@ public class DriverAssist {
     }
 
     /**
-     * Main update loop. Calculates and applies drive powers based on the current mode.
-     * @param joyY The joystick's Y input (forward/backward).
-     * @param joyX The joystick's X input (strafe left/right).
-     * @param joyTurn The joystick's turn input.
-     * @param alliance The current alliance, used for selecting the correct goal in TARGET_LOCK mode.
+     * Main update loop. Passes joystick inputs to the Follower and lets it handle
+     * the driving calculations based on the selected mode.
      */
     public void update(double joyY, double joyX, double joyTurn, GameState.Alliance alliance) {
-        double forward, strafe, turn;
-
         Pose robotPose = follower.getPose();
-        double robotHeading = robotPose.getHeading();
+
+        // DEFINITIVE FIX: If the pose is null, do not send ANY drive commands.
+        // Immediately return and wait for the next cycle for localization to stabilize.
+        if (robotPose == null) {
+            return;
+        }
 
         switch (currentMode) {
             case ROBOT_CENTRIC:
-                // In robot-centric mode, the joystick inputs are applied directly.
-                // Forward on the stick is always forward for the robot.
-                forward = joyY;
-                strafe = joyX;
-                turn = joyTurn;
-                break;
-
-            case TARGET_LOCK:
-                // In target-lock mode, translation is field-centric.
-                double sin_tl = Math.sin(-robotHeading);
-                double cos_tl = Math.cos(-robotHeading);
-                forward = joyY * cos_tl - joyX * sin_tl;
-                strafe = joyY * sin_tl + joyX * cos_tl;
-
-                // But the robot's rotation is automatically handled by a P-controller to point at the goal.
-                double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(alliance), robotHeading);
-                turn = HEADING_KP * headingError;
-                turn = Math.max(-1.0, Math.min(1.0, turn)); // Clamp to valid power range.
+                // The `true` here specifies that the joystick inputs are robot-centric.
+                follower.setTeleOpDrive(joyY, joyX, joyTurn, true);
                 break;
 
             case FIELD_CENTRIC:
-            default:
-                // In field-centric mode, we rotate the joystick inputs by the inverse of the robot's heading.
-                // This makes "forward" on the stick always drive away from the driver, down the field.
-                double sin_fc = Math.sin(-robotHeading);
-                double cos_fc = Math.cos(-robotHeading);
-                forward = joyY * cos_fc - joyX * sin_fc;
-                strafe = joyY * sin_fc + joyX * cos_fc;
-                turn = joyTurn; // Turn is still controlled manually.
+                // The `false` here specifies that the inputs are for field-centric mode.
+                follower.setTeleOpDrive(joyY, joyX, joyTurn, false);
+                break;
+
+            case TARGET_LOCK:
+                double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(alliance, robotPose), robotPose.getHeading());
+                double calculatedTurn = HEADING_KP * headingError;
+                calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
+
+                // Let the Follower handle field-centric joysticks, but override the turn value with our own.
+                follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
                 break;
         }
-
-        // Send the final calculated powers to the follower/drivetrain.
-        follower.setTeleOpDrive(forward, strafe, turn);
     }
     
     /**
-     * Calculates the absolute field heading (in radians) from the robot's current position
-     * to the center of the correct alliance goal.
-     * @param alliance The current alliance, to select the correct goal.
-     * @return The field-relative heading in radians.
+     * Calculates the absolute field heading (in radians) from the robot's current position to the goal.
+     * @param robotPose The robot's current pose, guaranteed not to be null by the main update method.
      */
-    public double calculateHeadingToGoal(GameState.Alliance alliance)
+    public double calculateHeadingToGoal(GameState.Alliance alliance, Pose robotPose)
     {
-        Pose robotPose = follower.getPose();
-        
-        // Select the correct goal from our presets.
         Pose targetGoal = (alliance == GameState.Alliance.BLUE)
                 ? FieldPosePresets.BLUE_GOAL_TARGET
                 : FieldPosePresets.RED_GOAL_TARGET;
         
-        // Use Math.atan2 to calculate the angle between the robot's position and the goal's position.
         return Math.atan2(
                 targetGoal.getY() - robotPose.getY(),
                 targetGoal.getX() - robotPose.getX()
         );
     }
+
+
+    /**
+     * Resets the robot's heading in the localization system. This is useful if the robot
+     * gets bumped or its orientation becomes inaccurate.
+     */
+    public void resetHeading() {
+        Pose currentPose = follower.getPose();
+        if (currentPose != null) {
+            // If we have a pose, just reset the heading to 90 degrees (facing forward).
+            follower.setPose(new Pose(currentPose.getX(), currentPose.getY(), Math.toRadians(90)));
+        } else {
+            // If the pose is null, reset to a default pose (0, 0) with a 90-degree heading.
+            follower.setPose(new Pose(0, 0, Math.toRadians(90)));
+        }
+    }
+
 }

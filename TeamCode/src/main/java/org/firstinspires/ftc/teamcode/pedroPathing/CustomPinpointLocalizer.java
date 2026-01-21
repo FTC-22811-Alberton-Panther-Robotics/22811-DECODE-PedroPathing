@@ -11,11 +11,28 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 
 import java.util.ArrayDeque;
+import java.util.OptionalDouble;
 
 /**
- * A standalone dead-wheel localizer that correctly wraps the GoBildaPinpointDriver.
- * This class now trusts the internal fusion of the Pinpoint device and serves as a
- * proper Localizer implementation for Pedro Pathing.
+ * This is our custom implementation of the dead-wheel localizer, which wraps the
+ * GoBildaPinpointDriver. It is responsible for two key things:
+ * 1. Providing a clean interface between the Pedro Pathing library and the specific
+ *    odometry hardware on the robot.
+ * 2. Maintaining a short-term history of the robot's pose. This is essential for
+ *    the `CombinedLocalizer` to be able to correct for vision system latency.
+ * <p>
+ * ---------------------------------------------------------------------------------
+ * --- HOW IT WORKS ---
+ * ---------------------------------------------------------------------------------
+ * The `update()` method is called in every loop. Each time, it adds the robot's current
+ * pose and a timestamp to a short list (`poseHistory`).
+ * <p>
+ * When the `CombinedLocalizer` receives a pose from the Limelight, it can ask this class,
+ * "Where were you at time X in the past?" using the `getPoseAtLatency()` method.
+ * This class then looks through its history to find the closest pose it has to that time.
+ * This ability to look back in time is the key to accurately fusing the fast-but-drifty
+ * dead-wheels with the slow-but-accurate camera.
+ * ---------------------------------------------------------------------------------
  */
 public class CustomPinpointLocalizer implements Localizer {
 
@@ -25,7 +42,6 @@ public class CustomPinpointLocalizer implements Localizer {
     private final AngleUnit angleUnit;
     private final UnnormalizedAngleUnit unnormalizedAngleUnit;
 
-    // Pose history for latency compensation, used by CombinedLocalizer
     private final ArrayDeque<PoseSnapshot> poseHistory = new ArrayDeque<>();
 
     public static class PoseSnapshot {
@@ -37,7 +53,6 @@ public class CustomPinpointLocalizer implements Localizer {
         }
     }
 
-    // CORRECTED: Constructor now accepts our custom constants class
     public CustomPinpointLocalizer(HardwareMap hardwareMap, CustomPinpointConstants constants) {
         this.constants = constants;
         pinpointDriver = hardwareMap.get(GoBildaPinpointDriver.class, constants.hardwareMapName);
@@ -46,12 +61,8 @@ public class CustomPinpointLocalizer implements Localizer {
         this.angleUnit = AngleUnit.RADIANS;
         this.unnormalizedAngleUnit = this.angleUnit.getUnnormalized();
 
-        // Configure the driver using the passed-in constants
         pinpointDriver.setOffsets(constants.strafePodX, constants.forwardPodY, this.distanceUnit);
-        pinpointDriver.setEncoderDirections(
-                constants.forwardEncoderDirection,
-                constants.strafeEncoderDirection
-        );
+        pinpointDriver.setEncoderDirections(constants.forwardEncoderDirection, constants.strafeEncoderDirection);
         pinpointDriver.setEncoderResolution(constants.encoderResolution);
         if (constants.yawScalar.isPresent()) {
             pinpointDriver.setYawScalar(constants.yawScalar.getAsDouble());
@@ -62,7 +73,7 @@ public class CustomPinpointLocalizer implements Localizer {
     public void update() {
         pinpointDriver.update();
         poseHistory.addLast(new PoseSnapshot(System.nanoTime(), getPose()));
-        if (poseHistory.size() > 150) {
+        if (poseHistory.size() > 150) { // Keep a buffer of around 150 readings
             poseHistory.removeFirst();
         }
     }
@@ -135,6 +146,11 @@ public class CustomPinpointLocalizer implements Localizer {
     @Override
     public double getTurningMultiplier() { return 1.0; }
 
+    /**
+     * Gets the historical pose from the stored buffer that is closest to a given latency.
+     * @param latency The age of the desired pose in seconds.
+     * @return The historical Pose, or the current pose if no suitable history is found.
+     */
     public Pose getPoseAtLatency(double latency) {
         long timeOfMeasurement = System.nanoTime() - (long)(latency * 1e9);
         PoseSnapshot closestSnapshot = null;
@@ -148,6 +164,10 @@ public class CustomPinpointLocalizer implements Localizer {
         return (closestSnapshot != null) ? closestSnapshot.pose : getPose();
     }
 
+    /**
+     * Clears the pose history buffer. This is called by the CombinedLocalizer after a
+     * vision correction has been applied to prevent re-applying the same correction.
+     */
     public void clearPoseHistory() {
         poseHistory.clear();
     }
