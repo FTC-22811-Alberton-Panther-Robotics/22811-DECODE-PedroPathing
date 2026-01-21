@@ -38,7 +38,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  *     in `CustomPinpointConstants` are accurately measured. (Values updated from bugfix).
  * [ ] MOTOR DIRECTIONS: Verify directions for both the main drive motors (`CustomMecanumDrive`)
  *     and the dead-wheel encoders (`CustomPinpointConstants`).
- * [ ] IMU ORIENTATION: Verify the Control Hub orientation in `MecanumHardware` for field-relative fallbacks.
+ * [x] IMU ORIENTATION: Verify the Control Hub orientation in `MecanumHardware` for field-relative fallbacks.
  *
  * TURRET:
  * [ ] (CRITICAL) PIDF TUNING: Run the `TurretTuningOpMode` to tune the `TURRET_PIDF`
@@ -53,7 +53,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * [ ] MOTOR CONSTANTS: Verify motor directions and `ticksPerRevolution` in `LauncherHardware`.
  *
  * DIVERTER & INTAKE:
- * [x] VOLTAGE CALIBRATION: Calibrate analog feedback voltages in `DiverterHardware`.
+ * [ ] VOLTAGE CALIBRATION: Calibrate analog feedback voltages in `DiverterHardware`.
  * [ ] LIMELIGHT ROI: Tune `ROI_MIN_Y` and `ROI_MAX_Y` in `DiverterHardware`.
  * [ ] JAM DETECTION: Tune `STUCK_TOLERANCE` in `DiverterHardware`.
  * [ ] LOGIC VALIDATION: Physically test the automatic artifact counting logic.
