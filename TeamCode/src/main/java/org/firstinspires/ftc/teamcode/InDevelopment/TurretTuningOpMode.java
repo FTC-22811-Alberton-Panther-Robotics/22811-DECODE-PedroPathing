@@ -57,10 +57,10 @@ public class TurretTuningOpMode extends OpMode {
 
     private void handleInput() {
         // --- Target Position Control ---
-        if (gamepad1.a && !a_pressed) targetPositionTicks = convertDegreesToTicks(0);   // Center
-        if (gamepad1.y && !y_pressed) targetPositionTicks = convertDegreesToTicks(45);  // Left
-        if (gamepad1.x && !x_pressed) targetPositionTicks = convertDegreesToTicks(-45); // Right
-        if (gamepad1.b && !b_pressed) targetPositionTicks = 0; // Far Right (Calibration Point)
+        if (gamepad1.yWasPressed()) targetPositionTicks = convertDegreesToTicks(0);   // Center
+        if (gamepad1.xWasPressed()) targetPositionTicks = convertDegreesToTicks(45);  // Left
+        if (gamepad1.bWasPressed()) targetPositionTicks = convertDegreesToTicks(-45); // Right
+        if (gamepad1.aWasPressed()) targetPositionTicks = 0; // Far Right (Calibration Point)
 
         // --- PIDF Value Adjustment ---
         if (gamepad1.dpad_up && !dpad_up_pressed) p += increment;
