@@ -34,7 +34,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * DRIVETRAIN & LOCALIZATION:
  * [ ] (CRITICAL) DRIVE TUNING: Use `DriveTuning` OpMode to find `X_VELOCITY`, `Y_VELOCITY`,
  *     and `staticFrictionCoefficient` in `CustomMecanumDrive`.
- * [x] (CRITICAL) ODOMETRY OFFSETS: Verify dead-wheel pod offsets (`forwardPodY`, `strafePodX`)
+ * [ ] (CRITICAL) ODOMETRY OFFSETS: Verify dead-wheel pod offsets (`forwardPodY`, `strafePodX`)
  *     in `CustomPinpointConstants` are accurately measured. (Values updated from bugfix).
  * [ ] MOTOR DIRECTIONS: Verify directions for both the main drive motors (`CustomMecanumDrive`)
  *     and the dead-wheel encoders (`CustomPinpointConstants`).

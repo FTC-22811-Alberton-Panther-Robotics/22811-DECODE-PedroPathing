@@ -52,12 +52,12 @@ public class TurretHardware {
     private final Follower follower;
 
     // --- Physical and Positional Constants ---
-    // TODO: Verify these physical constants match your robot's build.
+    // DONE: Verify these physical constants match your robot's build.
     private final double MOTOR_TICKS_PER_REV = 145.1; // For a REV HD Hex 40:1 motor
     private final double GEAR_RATIO = 82.0 / 23.0; // Example: 82-tooth turret gear, 23-tooth motor gear
     private final double TURRET_TICKS_PER_DEGREE = (MOTOR_TICKS_PER_REV * GEAR_RATIO) / 360.0;
     
-    // TODO: Measure and set the true angle of the turret after calibration against the hard stop.
+    // DONE: Measure and set the true angle of the turret after calibration against the hard stop.
     private final double ZERO_POINT_DEGREES = -90.0;
     
     // TODO: Set the safe software travel limits for the turret in degrees.
