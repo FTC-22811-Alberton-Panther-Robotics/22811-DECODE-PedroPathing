@@ -147,7 +147,7 @@
 //    private void calculatePoses() {
 //        if (GameState.alliance == GameState.Alliance.BLUE) {
 //            startPose = (startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START;
-//            scorePose = FieldPosePresets.BLUE_SCORE_POSE;
+//            scorePose = FieldPosePresets.BLUE_SCORE_CLOSE_TO_GOAL;
 //            parkPose = FieldPosePresets.BLUE_AUTO_PARK;
 //            frontSpike = FieldPosePresets.BLUE_PICKUP_FRONT_SPIKE;
 //            middleSpike = FieldPosePresets.BLUE_PICKUP_MIDDLE_SPIKE;

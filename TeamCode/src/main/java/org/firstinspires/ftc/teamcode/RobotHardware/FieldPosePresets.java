@@ -33,7 +33,8 @@ public class FieldPosePresets {
     public static Pose BLUE_BACK_START = new Pose(23, 120, Math.toRadians(270));
 
     /** A general-purpose scoring position for the blue alliance. */
-    public static Pose BLUE_SCORE_POSE = new Pose(60, 84, Math.toRadians(135));
+    public static Pose BLUE_SCORE_CLOSE_TO_GOAL = new Pose(60, 84, Math.toRadians(135));
+    public static Pose BLUE_SCORE_FAR_FROM_GOAL = new Pose(54, 12, Math.toRadians(112));
     /** Pose to pick up an artifact from the front spike mark. */
     public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
     /** Pose to pick up an artifact from the middle spike mark. */
@@ -58,7 +59,8 @@ public class FieldPosePresets {
     public static Pose RED_BACK_START = new Pose(121, 120, Math.toRadians(270));
 
     /** A general-purpose scoring position for the red alliance. */
-    public static Pose RED_SCORE_POSE = new Pose(84, 84, Math.toRadians(45));
+    public static Pose RED_SCORE_CLOSE_TO_GOAL = new Pose(84, 84, Math.toRadians(45));
+    public static Pose RED_SCORE_FAR_FROM_GOAL = new Pose(90, 12, Math.toRadians(68));
     /** Pose to pick up an artifact from the front spike mark. */
     public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(180));
     /** Pose to pick up an artifact from the middle spike mark. */
@@ -84,8 +86,8 @@ public class FieldPosePresets {
 
     // ========== GOAL TARGETS FOR AIMING ==========
     /** The physical center of the blue goal, used for turret and launcher aiming calculations. */
-    public static Pose BLUE_GOAL_TARGET = new Pose(13, 136, 0);
+    public static Pose BLUE_GOAL_TARGET = new Pose(0, 144, 0);
     /** The physical center of the red goal, used for turret and launcher aiming calculations. */
-    public static Pose RED_GOAL_TARGET = new Pose(131, 136, 0);
+    public static Pose RED_GOAL_TARGET = new Pose(144, 144, 0);
 
 }

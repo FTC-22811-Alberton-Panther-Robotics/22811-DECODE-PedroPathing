@@ -29,12 +29,13 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  * - Decoupled the transfer and launch sequences for more precise driver control.
  * - Consolidated primary controls to Gamepad 1 for a single operator.
  * - Confirmed reliable fallback controls exist for all automated systems.
+ * - Added `isPoseReliable` checks to prevent auto-aim and auto-velocity from using bad data.
  *
  * -- MASTER TUNING AND TESTING CHECKLIST --
  * DRIVETRAIN & LOCALIZATION:
  * [ ] (CRITICAL) DRIVE TUNING: Use `DriveTuning` OpMode to find `X_VELOCITY`, `Y_VELOCITY`,
  *     and `staticFrictionCoefficient` in `CustomMecanumDrive`.
- * [ ] (CRITICAL) ODOMETRY OFFSETS: Verify dead-wheel pod offsets (`forwardPodY`, `strafePodX`)
+ * [x] (CRITICAL) ODOMETRY OFFSETS: Verify dead-wheel pod offsets (`forwardPodY`, `strafePodX`)
  *     in `CustomPinpointConstants` are accurately measured. (Values updated from bugfix).
  * [ ] MOTOR DIRECTIONS: Verify directions for both the main drive motors (`CustomMecanumDrive`)
  *     and the dead-wheel encoders (`CustomPinpointConstants`).
@@ -101,7 +102,6 @@ public class BozemanTeleop extends OpMode {
 
     private GameState.Alliance alliance;
 
-    private boolean g1_y_pressed, g1_x_pressed, g1_b_pressed, g1_right_bumper_pressed, g1_left_bumper_pressed, g1_a_pressed, g1_start_pressed;
     private boolean was_manually_moving_turret;
 
     private enum StagedArtifact { NONE, GREEN, PURPLE }
@@ -123,9 +123,10 @@ public class BozemanTeleop extends OpMode {
         if (GameState.currentPose != null) {
             follower.setStartingPose(GameState.currentPose);
         } else {
-            follower.setStartingPose(new Pose());
+            follower.setPose(new Pose()); // Set a default pose, but it will be unreliable initially
         }
         this.alliance = (GameState.alliance != GameState.Alliance.UNKNOWN) ? GameState.alliance : GameState.Alliance.BLUE;
+        GameState.alliance = this.alliance;
 
         telemetry.addLine("Bozeman TeleOp Initialized. Ready for match!");
         telemetry.addLine("Press PLAY when localization is stable.");
@@ -156,17 +157,21 @@ public class BozemanTeleop extends OpMode {
     public void loop() {
         follower.update();
         actionManager.update();
-        robot.turret.update(alliance);
-        robot.launcher.update();
+
+        // Only run systems that depend on field position if our localization is reliable.
+        if (robot.localizer.isPoseReliable()) {
+            robot.turret.update(alliance);
+            robot.launcher.update();
+        }
 
         if (auto_diverter_enabled) {
             robot.diverter.update();
         }
 
-        robot.driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, alliance);
-
+        robot.driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         handleControls();
-        updateButtonStates();
+        double turret_input = -gamepad2.right_stick_x;
+        was_manually_moving_turret = Math.abs(turret_input) > 0.1;
         updateTelemetry();
     }
 
@@ -183,11 +188,11 @@ public class BozemanTeleop extends OpMode {
         }
 
         // Transfer and Staging
-        if (gamepad1.right_bumper && !g1_right_bumper_pressed) {
+        if (gamepad1.rightBumperWasPressed()) {
             actionManager.startTransferGreenArtifact();
             stagedArtifact = StagedArtifact.GREEN;
         }
-        if (gamepad1.left_bumper && !g1_left_bumper_pressed) {
+        if (gamepad1.leftBumperWasPressed()) {
             actionManager.startTransferPurpleArtifact();
             stagedArtifact = StagedArtifact.PURPLE;
         }
@@ -203,7 +208,7 @@ public class BozemanTeleop extends OpMode {
             stagedArtifact = StagedArtifact.NONE; // Reset after launch
         }
 
-        if (gamepad1.a && !g1_a_pressed) robot.launcher.toggleLauncher();
+        if (gamepad1.aWasPressed()) robot.launcher.toggleLauncher();
 
         // Turret
         double turret_input = -gamepad2.right_stick_x;
@@ -213,9 +218,9 @@ public class BozemanTeleop extends OpMode {
         } else if (was_manually_moving_turret) {
             robot.turret.setModeToAuto();
         }
-        if (gamepad1.x && !g1_x_pressed) robot.turret.resetNudge();
-        if (gamepad1.y && !g1_y_pressed) robot.turret.toggleAutoAim();
-        if (gamepad1.start && !g1_start_pressed) robot.driverAssist.resetHeading();
+        if (gamepad1.xWasPressed()) robot.turret.resetNudge();
+        if (gamepad1.yWasPressed()) robot.turret.toggleAutoAim();
+        if (gamepad1.startWasPressed()) robot.localizer.resetHeading(); // Corrected call
 
         // Diverter Manual Override
         if (gamepad1.dpad_left) {
@@ -232,26 +237,13 @@ public class BozemanTeleop extends OpMode {
         }
 
         // Drive Mode
-        if (gamepad1.b && !g1_b_pressed) {
+        if (gamepad1.bWasPressed()) {
             switch (robot.driverAssist.getMode()) {
                 case ROBOT_CENTRIC: robot.driverAssist.setMode(DriverAssist.DriveMode.FIELD_CENTRIC); break;
                 case FIELD_CENTRIC: robot.driverAssist.setMode(DriverAssist.DriveMode.TARGET_LOCK); break;
                 case TARGET_LOCK: robot.driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC); break;
             }
         }
-    }
-
-    private void updateButtonStates() {
-        g1_y_pressed = gamepad1.y;
-        g1_x_pressed = gamepad1.x;
-        g1_a_pressed = gamepad1.a;
-        g1_start_pressed = gamepad1.start;
-        g1_right_bumper_pressed = gamepad1.right_bumper;
-        g1_left_bumper_pressed = gamepad1.left_bumper;
-        g1_b_pressed = gamepad1.b;
-
-        double turret_input = -gamepad2.right_stick_x;
-        was_manually_moving_turret = Math.abs(turret_input) > 0.1;
     }
 
     private void updateTelemetry() {
@@ -264,6 +256,7 @@ public class BozemanTeleop extends OpMode {
         telemetry.addData("Green Artifacts", robot.diverter.getGreenArtifactCount());
         telemetry.addData("Purple Artifacts", robot.diverter.getPurpleArtifactCount());
         telemetry.addData("Diverter is Stuck", robot.diverter.isStuck());
+        telemetry.addData("Pose Reliable?", robot.localizer.isPoseReliable());
 
         Pose currentPose = follower.getPose();
         if (currentPose != null) {

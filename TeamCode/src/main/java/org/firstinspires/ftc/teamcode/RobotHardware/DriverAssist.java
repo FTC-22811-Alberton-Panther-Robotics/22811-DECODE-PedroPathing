@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 
 /**
  * A helper class to manage advanced TeleOp driving features like field-centric
@@ -30,6 +31,7 @@ import com.pedropathing.math.MathFunctions;
 public class DriverAssist {
 
     private final Follower follower;
+    private final CombinedLocalizer localizer;
 
     public enum DriveMode {
         ROBOT_CENTRIC,
@@ -41,8 +43,9 @@ public class DriverAssist {
     // TODO: Tune this Kp value for responsive but stable target locking.
     private static final double HEADING_KP = 0.8;
 
-    public DriverAssist(Follower follower) {
+    public DriverAssist(Follower follower, CombinedLocalizer localizer) {
         this.follower = follower;
+        this.localizer = localizer;
     }
 
     public void setMode(DriveMode mode) {
@@ -57,32 +60,28 @@ public class DriverAssist {
      * Main update loop. Passes joystick inputs to the Follower and lets it handle
      * the driving calculations based on the selected mode.
      */
-    public void update(double joyY, double joyX, double joyTurn, GameState.Alliance alliance) {
+    public void update(double joyY, double joyX, double joyTurn) {
         Pose robotPose = follower.getPose();
 
-        // DEFINITIVE FIX: If the pose is null, do not send ANY drive commands.
-        // Immediately return and wait for the next cycle for localization to stabilize.
-        if (robotPose == null) {
+        // Do not send any drive commands until the pose is known and reliable.
+        if (robotPose == null || !localizer.isPoseReliable()) {
             return;
         }
 
         switch (currentMode) {
             case ROBOT_CENTRIC:
-                // The `true` here specifies that the joystick inputs are robot-centric.
                 follower.setTeleOpDrive(joyY, joyX, joyTurn, true);
                 break;
 
             case FIELD_CENTRIC:
-                // The `false` here specifies that the inputs are for field-centric mode.
                 follower.setTeleOpDrive(joyY, joyX, joyTurn, false);
                 break;
 
             case TARGET_LOCK:
-                double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(alliance, robotPose), robotPose.getHeading());
+                double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
                 double calculatedTurn = HEADING_KP * headingError;
                 calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
 
-                // Let the Follower handle field-centric joysticks, but override the turn value with our own.
                 follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
                 break;
         }
@@ -90,11 +89,10 @@ public class DriverAssist {
     
     /**
      * Calculates the absolute field heading (in radians) from the robot's current position to the goal.
-     * @param robotPose The robot's current pose, guaranteed not to be null by the main update method.
      */
-    public double calculateHeadingToGoal(GameState.Alliance alliance, Pose robotPose)
+    public double calculateHeadingToGoal(Pose robotPose)
     {
-        Pose targetGoal = (alliance == GameState.Alliance.BLUE)
+        Pose targetGoal = (GameState.alliance == GameState.Alliance.BLUE)
                 ? FieldPosePresets.BLUE_GOAL_TARGET
                 : FieldPosePresets.RED_GOAL_TARGET;
         
@@ -103,21 +101,4 @@ public class DriverAssist {
                 targetGoal.getX() - robotPose.getX()
         );
     }
-
-
-    /**
-     * Resets the robot's heading in the localization system. This is useful if the robot
-     * gets bumped or its orientation becomes inaccurate.
-     */
-    public void resetHeading() {
-        Pose currentPose = follower.getPose();
-        if (currentPose != null) {
-            // If we have a pose, just reset the heading to 90 degrees (facing forward).
-            follower.setPose(new Pose(currentPose.getX(), currentPose.getY(), Math.toRadians(90)));
-        } else {
-            // If the pose is null, reset to a default pose (0, 0) with a 90-degree heading.
-            follower.setPose(new Pose(0, 0, Math.toRadians(90)));
-        }
-    }
-
 }
