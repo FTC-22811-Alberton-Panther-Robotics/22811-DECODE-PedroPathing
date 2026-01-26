@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.localization.Localizer;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
@@ -28,12 +27,7 @@ public class RobotHardwareContainer {
     public final ScoopHardware scoop;
     public final DiverterHardware diverter;
     public TurretHardware turret;
-    public DriverAssist driverAssist;
     public LimelightBallDetector limelightBallDetector;
-
-    // Localizers for Pedro Pathing
-    public final CustomPinpointLocalizer pinpoint;
-    public final CombinedLocalizer localizer;
 
     public RobotHardwareContainer(HardwareMap hardwareMap, Telemetry telemetry) {
         // Create instances of each hardware class
@@ -42,9 +36,6 @@ public class RobotHardwareContainer {
         scoop = new ScoopHardware();
         diverter = new DiverterHardware();
         limelightBallDetector = new LimelightBallDetector();
-
-        pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointConstants());
-        localizer = new CombinedLocalizer(pinpoint, new LimelightAprilTagLocalizer(), telemetry);
 
         // Initialize all mechanical subsystems
         intake.init(hardwareMap);
@@ -62,13 +53,5 @@ public class RobotHardwareContainer {
     public void initLauncher(Follower follower, TurretHardware turret, HardwareMap hardwareMap) {
         this.launcher = new LauncherHardware(follower, turret);
         this.launcher.init(hardwareMap);
-    }
-
-    public void initDriverAssist(Follower follower) {
-        this.driverAssist = new DriverAssist(follower, localizer);
-    }
-
-    public void initLimelight(HardwareMap hardwareMap, Telemetry telemetry) {
-        this.limelightBallDetector.init(hardwareMap, telemetry);
     }
 }

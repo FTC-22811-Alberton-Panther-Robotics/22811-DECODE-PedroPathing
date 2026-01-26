@@ -61,12 +61,16 @@ public class DriverAssist {
      * the driving calculations based on the selected mode.
      */
     public void update(double joyY, double joyX, double joyTurn) {
-        Pose robotPose = follower.getPose();
+        //Pose robotPose = localizer.getPose();
 
-        // Do not send any drive commands until the pose is known and reliable.
-        if (robotPose == null || !localizer.isPoseReliable()) {
-            return;
-        }
+//        // This is a comprehensive guard clause to prevent crashes on the first loop.
+//        // It checks for null objects, our reliability flag, the hardware's NaN flag,
+//        // and a manual check of the pose contents to prevent passing invalid data.
+//        if (robotPose == null || !localizer.isPoseReliable() || localizer.isNAN()
+//                || Double.isNaN(robotPose.getX()) || Double.isNaN(robotPose.getY()) || Double.isNaN(robotPose.getHeading())) {
+//            follower.setTeleOpDrive(0,0,0,true); // Send a zero power command to be safe
+//            return;
+//        }
 
         switch (currentMode) {
             case ROBOT_CENTRIC:
@@ -78,11 +82,12 @@ public class DriverAssist {
                 break;
 
             case TARGET_LOCK:
-                double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
-                double calculatedTurn = HEADING_KP * headingError;
-                calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
+                //double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
+                //double calculatedTurn = HEADING_KP * headingError;
+                //calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
 
-                follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
+                //follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
+                follower.setTeleOpDrive(joyY, joyX, joyTurn, false);
                 break;
         }
     }

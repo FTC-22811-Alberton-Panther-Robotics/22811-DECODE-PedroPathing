@@ -94,7 +94,11 @@ public class BozemanAuto extends OpMode {
     public void init() {
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         actionManager = new ActionManager(robot);
-        follower = Constants.createFollower(hardwareMap, robot);
+
+        follower = Constants.createFollower(hardwareMap, telemetry);
+
+        robot.initTurret(follower, hardwareMap);
+        robot.initLauncher(follower, robot.turret, hardwareMap);
 
         telemetry.addLine("--- Playlist Autonomous Builder ---");
         telemetry.addLine("X: Lock Playlist | A: Add | B: Remove | Y: Clear");
@@ -103,24 +107,24 @@ public class BozemanAuto extends OpMode {
 
     @Override
     public void init_loop() {
-        if (gamepad1.x) {
+        if (gamepad1.xWasPressed()) {
             isPlaylistFinalized = !isPlaylistFinalized;
         }
 
         if (!isPlaylistFinalized) {
-            if (gamepad1.dpad_up) alliance = GameState.Alliance.BLUE;
-            if (gamepad1.dpad_down) alliance = GameState.Alliance.RED;
+            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
+            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
 
-            if (gamepad1.left_bumper) startPosition = StartPosition.FRONT;
-            if (gamepad1.right_bumper) startPosition = StartPosition.BACK;
+            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
+            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
 
             AutoCommand[] allCommands = AutoCommand.values();
-            if (gamepad1.dpad_right) commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
-            if (gamepad1.dpad_left) commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
+            if (gamepad1.dpadRightWasPressed()) commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
+            if (gamepad1.dpadLeftWasPressed()) commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
 
-            if (gamepad1.a) autoCommands.add(allCommands[commandMenuIndex]);
-            if (gamepad1.y) autoCommands.clear();
-            if (gamepad1.b && !autoCommands.isEmpty()) {
+            if (gamepad1.aWasPressed()) autoCommands.add(allCommands[commandMenuIndex]);
+            if (gamepad1.yWasPressed()) autoCommands.clear();
+            if (gamepad1.bWasPressed() && !autoCommands.isEmpty()) {
                 autoCommands.remove(autoCommands.size() - 1);
             }
         }
@@ -141,6 +145,7 @@ public class BozemanAuto extends OpMode {
     @Override
     public void start() {
         GameState.alliance = this.alliance;
+        robot.turret.calibrate(); // Start non-blocking calibration
 
         calculatePoses();
         follower.setStartingPose(startPose);
@@ -156,9 +161,9 @@ public class BozemanAuto extends OpMode {
     public void loop() {
         follower.update();
         actionManager.update();
-        if (robot.localizer.isPoseReliable()) {
-            robot.launcher.update();
-        }
+        robot.turret.update(alliance);
+        robot.launcher.update();
+
         updatePath();
 
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());

@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
-
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.Optional;
@@ -11,42 +11,8 @@ import java.util.Optional;
 /**
  * A fused localizer that orchestrates corrections between a dead-wheel localizer
  * (CustomPinpointLocalizer) and a vision localizer (LimelightAprilTagLocalizer).
- * This class is the single source of truth for the robot's position on the field.
- * <p>
- * ---------------------------------------------------------------------------------
- * --- HOW IT WORKS: FUSION AND LATENCY CORRECTION --
- * ---------------------------------------------------------------------------------
- * The challenge with fusing two localization systems is that they have different latencies.
- * Dead-wheel encoders provide very fast but slightly inaccurate updates (due to wheel slip),
- * while the Limelight provides very accurate but slow updates (due to camera exposure,
- * network time, and image processing).
- * <p>
- * This class solves this problem with the following logic:
- * 1. It continuously updates the dead-wheel localizer (`pinpoint.update()`).
- * 2. It also continuously asks the Limelight for a new pose (`limelight.getRobotPoseWithLatency()`).
- * 3. When the Limelight returns a valid pose, it also tells us its `latency`—how old the data is.
- * 4. We then ask our dead-wheel localizer where it *thought* the robot was at that exact moment
- *    in the past (`pinpoint.getPoseAtLatency(latency)`).
- * 5. The difference between the Limelight's accurate pose and the dead-wheel's historical pose
- *    is calculated. This difference is the `error`.
- * 6. This `error` is then applied to the *current* dead-wheel pose, instantly correcting it.
- * 7. The dead-wheel localizer's history is then cleared to prevent applying the same correction twice.
- * <p>
- * ---------------------------------------------------------------------------------
- * --- RELIABILITY AND DIAGNOSTICS --
- * ---------------------------------------------------------------------------------
- * This version includes several features for improved reliability and easier debugging:
- * 1. (0,0,0) Pose Rejection: The Limelight may occasionally return an invalid pose of (0,0,0).
- *    This class explicitly checks for and rejects these poses to prevent corrupting the
- *    robot's position estimate.
- * 2. isPoseReliable Flag: This boolean flag allows other classes to know if the current
- *    pose is a real, measured position or just a default placeholder, preventing the robot
- *    from making decisions based on bad data.
- * 3. Diagnostic Telemetry: The class keeps a running total of the translational and
- *    heading errors applied by the vision system. If these numbers grow very large, it
- *    indicates a problem with either the dead-wheel tracking (e.g., incorrect constants)
- *    or the vision system.
- * ---------------------------------------------------------------------------------
+ * This class implements the Localizer interface and is the single source of truth for the
+ * robot's position on the field.
  */
 public class CombinedLocalizer implements Localizer { 
 
@@ -58,30 +24,23 @@ public class CombinedLocalizer implements Localizer {
     private double totalTranslationalError = 0.0;
     private double totalHeadingError = 0.0;
 
-    public CombinedLocalizer(CustomPinpointLocalizer pinpoint, LimelightAprilTagLocalizer limelight, Telemetry telemetry) {
-        this.pinpoint = pinpoint;
-        this.limelight = limelight;
+    public CombinedLocalizer(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.pinpoint = new CustomPinpointLocalizer(hardwareMap, new CustomPinpointConstants());
+        this.limelight = new LimelightAprilTagLocalizer(hardwareMap, new LimelightConstants(), telemetry);
         this.telemetry = telemetry;
-    }
-
-    public CombinedLocalizer(CustomPinpointLocalizer pinpoint, LimelightAprilTagLocalizer limelight) {
-        this(pinpoint, limelight, null);
     }
 
     @Override
     public void update() {
+        // First, update the underlying localizers.
         pinpoint.update();
-        Optional<LimelightAprilTagLocalizer.LimelightPoseData> limelightPoseData = limelight.getRobotPoseWithLatency();
         
+        // Attempt to get a pose from the vision system.
+        Optional<LimelightAprilTagLocalizer.LimelightPoseData> limelightPoseData = limelight.getLatestPoseWithLatency();
+        
+        // If the vision system has a valid pose, use it to correct the dead-wheel pose.
         if (limelightPoseData.isPresent()) {
             LimelightAprilTagLocalizer.LimelightPoseData data = limelightPoseData.get();
-
-            // Validity check to prevent corrupting the pose with an invalid (0,0,0) from Limelight
-            if (data.pose.getX() == 0 && data.pose.getY() == 0 && data.pose.getHeading() == 0) {
-                if (telemetry != null) telemetry.addData("Localization", "Rejected invalid (0,0,0) vision pose.");
-                return; // Do not apply this invalid correction
-            }
-
             Pose currentPinpointPose = pinpoint.getPose();
             Pose pinpointPoseAtLatency = pinpoint.getPoseAtLatency(data.latency);
 
@@ -100,6 +59,12 @@ public class CombinedLocalizer implements Localizer {
             }
         } else {
             if (telemetry != null) telemetry.addData("Localization", "No vision data.");
+        }
+
+        // If we haven't gotten a vision update yet, but the dead wheels are giving us
+        // valid numbers, then we can consider the pose reliable for driving.
+        if (!isPoseReliable && !pinpoint.isNAN()) {
+            isPoseReliable = true;
         }
 
         if (telemetry != null) {
@@ -134,53 +99,19 @@ public class CombinedLocalizer implements Localizer {
     }
 
     @Override
-    public Pose getVelocity() {
-        return pinpoint.getVelocity();
-    }
-
-    @Override
-    public Vector getVelocityVector() {
-        return pinpoint.getVelocityVector();
-    }
-
-    @Override
     public void setStartPose(Pose setStart) {
         pinpoint.setStartPose(setStart);
         isPoseReliable = true;
     }
 
-    @Override
-    public double getTotalHeading() {
-        return pinpoint.getTotalHeading();
-    }
-
-    @Override
-    public double getForwardMultiplier() {
-        return pinpoint.getForwardMultiplier();
-    }
-
-    @Override
-    public double getLateralMultiplier() {
-        return pinpoint.getLateralMultiplier();
-    }
-
-    @Override
-    public double getTurningMultiplier() {
-        return pinpoint.getTurningMultiplier();
-    }
-
-    @Override
-    public void resetIMU() throws InterruptedException {
-        pinpoint.resetIMU();
-    }
-
-    @Override
-    public double getIMUHeading() {
-        return pinpoint.getIMUHeading();
-    }
-
-    @Override
-    public boolean isNAN() {
-        return pinpoint.isNAN();
-    }
+    // All other methods from the Localizer interface simply delegate to the pinpoint localizer.
+    @Override public Pose getVelocity() { return pinpoint.getVelocity(); }
+    @Override public Vector getVelocityVector() { return pinpoint.getVelocityVector(); }
+    @Override public double getTotalHeading() { return pinpoint.getTotalHeading(); }
+    @Override public double getForwardMultiplier() { return pinpoint.getForwardMultiplier(); }
+    @Override public double getLateralMultiplier() { return pinpoint.getLateralMultiplier(); }
+    @Override public double getTurningMultiplier() { return pinpoint.getTurningMultiplier(); }
+    @Override public void resetIMU() throws InterruptedException { pinpoint.resetIMU(); }
+    @Override public double getIMUHeading() { return pinpoint.getIMUHeading(); }
+    @Override public boolean isNAN() { return pinpoint.isNAN(); }
 }
