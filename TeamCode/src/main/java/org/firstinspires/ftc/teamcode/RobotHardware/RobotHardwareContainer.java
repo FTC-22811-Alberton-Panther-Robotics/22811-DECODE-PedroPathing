@@ -50,8 +50,8 @@ public class RobotHardwareContainer {
         this.turret.init(hardwareMap);
     }
 
-    public void initLauncher(Follower follower, TurretHardware turret, HardwareMap hardwareMap) {
-        this.launcher = new LauncherHardware(follower, turret);
+    public void initLauncher(Follower follower, HardwareMap hardwareMap) {
+        this.launcher = new LauncherHardware(follower);
         this.launcher.init(hardwareMap);
     }
 }

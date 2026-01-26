@@ -1,20 +1,26 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
-import static java.lang.Double.NaN;
-
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
+import com.pedropathing.paths.HeadingInterpolator;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.DiverterHardware;
-import org.firstinspires.ftc.teamcode.RobotHardware.DriverAssist;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+import java.util.function.Supplier;
 
 /**
  * ---------------------------------------------------------------------------------
@@ -103,13 +109,17 @@ public class BozemanTeleop extends OpMode {
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
     private Follower follower;
+    public static Pose startingPose;
+    private boolean automatedDrive;
+    private Supplier<PathChain> pathChain;
+    private TelemetryManager telemetryM;
     private GameState.Alliance alliance;
     private enum StartPosition {FRONT, BACK};
     private StartPosition startPosition = StartPosition.FRONT;
 
     // Drive Mode Logic
-    public enum DriveMode { ROBOT_CENTRIC, FIELD_CENTRIC, TARGET_LOCK }
-    private DriveMode currentDriveMode = DriveMode.ROBOT_CENTRIC;
+    public enum DriveMode { ROBOT_CENTRIC, FIELD_CENTRIC, TARGET_LOCK, AUTO_PARK }
+    private DriveMode currentDriveMode = DriveMode.FIELD_CENTRIC;
     private static final double HEADING_KP = 0.8; // Proportional gain for Target Lock
 
     // State variables for edge detection and controls
@@ -126,10 +136,13 @@ public class BozemanTeleop extends OpMode {
 
         // Create and get the single, authoritative instances of the Follower and Localizer
         follower = Constants.createFollower(hardwareMap, telemetry);
+        follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
+        follower.update();
+        telemetryM  = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Initialize hardware that depends on the follower
         robot.initTurret(follower, hardwareMap);
-        robot.initLauncher(follower, robot.turret, hardwareMap);
+        robot.initLauncher(follower, hardwareMap);
 
         actionManager = new ActionManager(robot);
 
@@ -169,6 +182,8 @@ public class BozemanTeleop extends OpMode {
             // starting point for testing field-relative features.
             follower.setStartingPose((startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START);
         }
+        follower.update();
+        follower.startTeleopDrive();
     }
 
     @Override
@@ -177,34 +192,37 @@ public class BozemanTeleop extends OpMode {
         follower.update();
         actionManager.update();
         robot.turret.update(alliance);
-        robot.launcher.update();
-        follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x);
-//        // This block now contains all the drive logic, calling the follower directly.
-//        switch (currentDriveMode) {
-//            case ROBOT_CENTRIC:
-//                follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
-//                break;
-//            case FIELD_CENTRIC:
-//                follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, false);
-//                break;
-//            case TARGET_LOCK:
-//                Pose robotPose = Constants.localizer.getPose();
-//                if (robotPose != null) {
-//                    double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
-//                    double calculatedTurn = HEADING_KP * headingError;
-//                    follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, calculatedTurn, false);
-//                }
-//                break;
-//        }
+        robot.launcher.update(alliance);
+
+        // This block now contains all the drive logic, calling the follower directly.
+        switch (currentDriveMode) {
+            case ROBOT_CENTRIC:
+                follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
+                break;
+            case FIELD_CENTRIC:
+                follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, false);
+                break;
+            case TARGET_LOCK:
+                Pose robotPose = follower.getPose();
+                if (robotPose != null) {
+                    double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
+                    double calculatedTurn = HEADING_KP * headingError;
+                    follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, calculatedTurn, false);
+                }
+                break;
+            case AUTO_PARK:
+                pathChain.get().update();
+                break;
+        }
 
         if (auto_diverter_enabled) {
             robot.diverter.update();
         }
 
         handleControls();
-        
+
         was_manually_moving_turret = Math.abs(-gamepad2.right_stick_x) > 0.1;
-        
+
         updateTelemetry();
     }
 
@@ -279,12 +297,16 @@ public class BozemanTeleop extends OpMode {
         }
 
         // Drive Mode
-        if (gamepad1.bWasPressed()) {
+        if (gamepad1.backWasPressed()) {
             switch (currentDriveMode) {
                 case ROBOT_CENTRIC: currentDriveMode = DriveMode.FIELD_CENTRIC; break;
                 case FIELD_CENTRIC: currentDriveMode = DriveMode.TARGET_LOCK; break;
                 case TARGET_LOCK: currentDriveMode = DriveMode.ROBOT_CENTRIC; break;
             }
+        }
+
+        if (gamepad1.backWasPressed()) {
+            autoPark();
         }
 
         // --- Alliance Toggle for Testing ---
@@ -324,5 +346,17 @@ public class BozemanTeleop extends OpMode {
             telemetry.addLine("Pose: Initializing...");
         }
         telemetry.update();
+    }
+
+    public void autoPark(){
+        pathChain = () -> follower.pathBuilder() //Lazy Curve Generation
+                .addPath(new Path(new BezierLine(follower::getPose, alliance == GameState.Alliance.BLUE ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE)))
+                .setHeadingInterpolation(HeadingInterpolator.tangent)
+                .build();
+    }
+
+    @Override
+    public void stop() {
+        follower.setTeleOpDrive(0, 0, 0, true);
     }
 }

@@ -98,7 +98,7 @@ public class BozemanAuto extends OpMode {
         follower = Constants.createFollower(hardwareMap, telemetry);
 
         robot.initTurret(follower, hardwareMap);
-        robot.initLauncher(follower, robot.turret, hardwareMap);
+        robot.initLauncher(follower, hardwareMap);
 
         telemetry.addLine("--- Playlist Autonomous Builder ---");
         telemetry.addLine("X: Lock Playlist | A: Add | B: Remove | Y: Clear");
@@ -162,7 +162,7 @@ public class BozemanAuto extends OpMode {
         follower.update();
         actionManager.update();
         robot.turret.update(alliance);
-        robot.launcher.update();
+        robot.launcher.update(alliance);
 
         updatePath();
 

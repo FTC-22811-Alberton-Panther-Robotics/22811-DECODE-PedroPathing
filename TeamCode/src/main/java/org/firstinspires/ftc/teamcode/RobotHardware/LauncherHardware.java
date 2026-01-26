@@ -4,6 +4,7 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
@@ -42,7 +43,6 @@ public class LauncherHardware {
     private DcMotorEx leftFlywheel;
     private DcMotorEx rightFlywheel;
     private final Follower follower;
-    private final TurretHardware turret;
 
     // --- Tunable Constants for Automatic Speed Control ---
     // TODO: Tune all four of these values to create an accurate distance-to-velocity mapping.
@@ -59,9 +59,8 @@ public class LauncherHardware {
     private double currentTargetVelocity = 0.0;
     private boolean isLauncherOn = false; // Default to off
 
-    public LauncherHardware(Follower follower, TurretHardware turret) {
+    public LauncherHardware(Follower follower) {
         this.follower = follower;
-        this.turret = turret;
     }
 
     public void init(HardwareMap hardwareMap) {
@@ -82,14 +81,16 @@ public class LauncherHardware {
      * This is the main update loop for the launcher.
      * It calculates the required flywheel speed based on distance and applies it.
      */
-    public void update() {
+    public void update(GameState.Alliance alliance) {
         if (!isLauncherOn) {
             stop();
             return;
         }
 
         Pose robotPose = follower.getPose();
-        Pose targetGoal = turret.getTargetGoal();
+        Pose targetGoal = (alliance == GameState.Alliance.BLUE
+                ? FieldPosePresets.BLUE_GOAL_TARGET
+                : FieldPosePresets.RED_GOAL_TARGET);
 
         if (robotPose == null || targetGoal == null) {
             stop(); // Safety check
