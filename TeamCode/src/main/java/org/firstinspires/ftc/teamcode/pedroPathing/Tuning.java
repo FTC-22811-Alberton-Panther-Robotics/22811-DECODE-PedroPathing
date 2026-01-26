@@ -582,6 +582,9 @@ class ForwardZeroPowerAccelerationTuner extends OpMode {
                     stopping = true;
                     follower.setTeleOpDrive(0,0,0,true);
                 }
+                telemetryM.debug("Accelerating");
+                telemetryM.debug("Velocity",follower.getVelocity().dot(heading));
+                telemetryM.update(telemetry);
             } else {
                 double currentVelocity = follower.getVelocity().dot(heading);
                 accelerations.add((currentVelocity - previousVelocity) / ((System.nanoTime() - previousTimeNano) / Math.pow(10.0, 9)));
@@ -590,6 +593,9 @@ class ForwardZeroPowerAccelerationTuner extends OpMode {
                 if (currentVelocity < follower.getConstraints().getVelocityConstraint()) {
                     end = true;
                 }
+                telemetryM.debug("Stopping");
+                telemetryM.debug("Velocity",follower.getVelocity().dot(heading));
+                telemetryM.update(telemetry);
             }
         } else {
             double average = 0;
