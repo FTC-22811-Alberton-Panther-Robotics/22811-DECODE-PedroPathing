@@ -25,8 +25,8 @@ public class Constants {
     // TODO: Run all tuners and update these values. See the Pedro Pathing documentation for guides.
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(13.11) // Robot mass in kilograms
-            //.forwardZeroPowerAcceleration(-25.0) // Tuned with ForwardZeroPowerAccelerationTuner
-            //.lateralZeroPowerAcceleration(-67.0) // Tuned with LateralZeroPowerAccelerationTuner
+            .forwardZeroPowerAcceleration(-38) // Tuned with ForwardZeroPowerAccelerationTuner
+            .lateralZeroPowerAcceleration(-70) // Tuned with LateralZeroPowerAccelerationTuner
             //.translationalPIDFCoefficients(new PIDFCoefficients(0.03, 0, 0, 0.015)) // Tuned with TranslationalPIDTuner
             //.headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0, 0.01)) // Tuned with HeadingPIDTuner
             //.drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.00035, 0.6, 0.015)) // Tuned with DrivePIDTuner
@@ -63,7 +63,7 @@ public class Constants {
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
     /**
      * Creates a new Follower instance with a complete, fused localization system.
