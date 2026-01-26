@@ -25,13 +25,13 @@ public class Constants {
     // TODO: Run all tuners and update these values. See the Pedro Pathing documentation for guides.
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(13.11) // Robot mass in kilograms
-            .forwardZeroPowerAcceleration(-25.0) // Tuned with ForwardZeroPowerAccelerationTuner
-            .lateralZeroPowerAcceleration(-67.0) // Tuned with LateralZeroPowerAccelerationTuner
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.03, 0, 0, 0.015)) // Tuned with TranslationalPIDTuner
-            .headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0, 0.01)) // Tuned with HeadingPIDTuner
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.00035, 0.6, 0.015)) // Tuned with DrivePIDTuner
-            .centripetalScaling(0.0005); // Tuned with CentripetalTuner
-
+            //.forwardZeroPowerAcceleration(-25.0) // Tuned with ForwardZeroPowerAccelerationTuner
+            //.lateralZeroPowerAcceleration(-67.0) // Tuned with LateralZeroPowerAccelerationTuner
+            //.translationalPIDFCoefficients(new PIDFCoefficients(0.03, 0, 0, 0.015)) // Tuned with TranslationalPIDTuner
+            //.headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0, 0.01)) // Tuned with HeadingPIDTuner
+            //.drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.00035, 0.6, 0.015)) // Tuned with DrivePIDTuner
+            //.centripetalScaling(0.0005); // Tuned with CentripetalTuner
+            ;
     // Constants for our custom dead-wheel localizer
     public static CustomPinpointConstants pinpointConstants = new CustomPinpointConstants();
 
@@ -53,7 +53,9 @@ public class Constants {
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
+            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .xVelocity(59.58)
+            .yVelocity(49.88);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
             .forwardPodY(-7.5)
