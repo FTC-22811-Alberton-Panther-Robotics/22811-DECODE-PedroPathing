@@ -27,8 +27,8 @@ public class Constants {
             .mass(13.11) // Robot mass in kilograms
             .forwardZeroPowerAcceleration(-38) // Tuned with ForwardZeroPowerAccelerationTuner
             .lateralZeroPowerAcceleration(-70) // Tuned with LateralZeroPowerAccelerationTuner
-            //.translationalPIDFCoefficients(new PIDFCoefficients(0.03, 0, 0, 0.015)) // Tuned with TranslationalPIDTuner
-            //.headingPIDFCoefficients(new PIDFCoefficients(0.8, 0, 0, 0.01)) // Tuned with HeadingPIDTuner
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.067, 0, .0567, .0015)) // Tuned with TranslationalPIDTuner
+            .headingPIDFCoefficients(new PIDFCoefficients(.1, 0, .005, 0.01)) // Tuned with HeadingPIDTuner
             //.drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.00035, 0.6, 0.015)) // Tuned with DrivePIDTuner
             //.centripetalScaling(0.0005); // Tuned with CentripetalTuner
             ;
@@ -38,12 +38,13 @@ public class Constants {
     // Constants for our custom Limelight localizer
     public static LimelightConstants limelightConstants = new LimelightConstants();
 
-    public static PathConstraints pathConstraints = new PathConstraints(
-            0.99, // Max velocity percentage
+    public static PathConstraints pathConstraints = new PathConstraints(0.99, // Max velocity percentage
             100,  // Max acceleration
             1,    // De-acceleration ramp (don't change)
             1     // De-acceleration ramp (don't change)
     );
+
+
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("rightFrontDrive")

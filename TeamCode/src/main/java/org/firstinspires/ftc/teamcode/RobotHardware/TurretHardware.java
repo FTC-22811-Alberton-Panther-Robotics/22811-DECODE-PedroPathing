@@ -74,6 +74,7 @@ public class TurretHardware {
         turretMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION, TURRET_PIDF);
         turretMotor.setTargetPositionTolerance(ACCEPTABLE_TOLERANCE_TICKS);
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        turretMotor.setTargetPosition(turretMotor.getCurrentPosition());
     }
 
     /**
