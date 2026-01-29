@@ -33,9 +33,9 @@ import java.util.OptionalDouble;
  */
 public class CustomPinpointConstants {
 
-    // TODO: Verify these measurements on the physical robot.
-    public double forwardPodY = -8.5;
-    public double strafePodX = 2.5;
+    // DONE: Verify these measurements on the physical robot.
+    public double forwardPodY = -7.5;
+    public double strafePodX = 0;
     
     public DistanceUnit distanceUnit = DistanceUnit.INCH;
     public String hardwareMapName = "pinpoint";
@@ -43,7 +43,7 @@ public class CustomPinpointConstants {
     
     public GoBildaPinpointDriver.GoBildaOdometryPods encoderResolution = GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD;
     
-    // TODO: Test and reverse these if odometry drifts in the wrong direction.
+    // DONE: Test and reverse these if odometry drifts in the wrong direction.
     public GoBildaPinpointDriver.EncoderDirection forwardEncoderDirection = GoBildaPinpointDriver.EncoderDirection.REVERSED;
     public GoBildaPinpointDriver.EncoderDirection strafeEncoderDirection = GoBildaPinpointDriver.EncoderDirection.FORWARD;
 
