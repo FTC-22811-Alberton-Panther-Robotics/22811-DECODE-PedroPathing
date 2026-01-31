@@ -11,6 +11,7 @@ import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.function.Supplier;
@@ -18,6 +19,7 @@ import java.util.function.Supplier;
 @Configurable
 @TeleOp
 public class PedroTeleopExample extends OpMode {
+    private CombinedLocalizer localizer;
     private Follower follower;
     public static Pose startingPose; //See ExampleAuto to understand how to use this
     private boolean automatedDrive;
@@ -28,7 +30,8 @@ public class PedroTeleopExample extends OpMode {
 
     @Override
     public void init() {
-        follower = Constants.createFollower(hardwareMap, telemetry);
+        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        follower = Constants.createFollower(hardwareMap, localizer);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();

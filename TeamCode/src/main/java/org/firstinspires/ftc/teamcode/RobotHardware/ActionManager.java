@@ -17,14 +17,19 @@ public class ActionManager {
 
     private final RobotHardwareContainer robot;
     private final ElapsedTime timer = new ElapsedTime();
-    private boolean scoopHasBeenMoved = false;
+
+    // --- Tuning Constants ---
+    private static final double LAUNCHER_SPINUP_TIMEOUT_SECONDS = 1.5; // Max time to wait for the launcher to get to speed.
+    private static final double SCOOP_CYCLE_SECONDS = 0.67; // How long the scoop stays up to fire.
 
     public enum ActionState {
         IDLE,
         INTAKING,
         TRANSFER_GREEN_ARTIFACT_TO_SCOOP,
         TRANSFER_PURPLE_ARTIFACT_TO_SCOOP,
-        LAUNCH_FROM_SCOOP,
+        AUTO_LAUNCHER_SPINUP,       // Autonomous: Spin up launcher and wait for it to be ready.
+        AUTO_SCOOP_CYCLE,           // Autonomous: Fire by moving the scoop.
+        TELEOP_SCOOP_CYCLE,         // TeleOp: Manually fire the scoop (assumes launcher is already on).
         WAITING_FOR_AUTO_ACTION
     }
     private ActionState currentState = ActionState.IDLE;
@@ -36,19 +41,12 @@ public class ActionManager {
     public void update() {
         switch (currentState) {
             case IDLE:
+            case INTAKING: // Manually started/stopped
                 break;
 
             case WAITING_FOR_AUTO_ACTION:
                 if (timer.seconds() > 1.0) {
                     stopAll();
-                }
-                break;
-
-            case INTAKING:
-                // TODO: Tune the duration for the intake burst.
-                if (timer.seconds() > 2.0) {
-                    robot.intake.stop();
-                    currentState = ActionState.IDLE;
                 }
                 break;
 
@@ -68,15 +66,35 @@ public class ActionManager {
                 }
                 break;
 
-            case LAUNCH_FROM_SCOOP:
-                if (!scoopHasBeenMoved) {
+            // --- Autonomous Launch Sequence ---
+            case AUTO_LAUNCHER_SPINUP:
+                // In this state, we check if the launcher is at its target speed.
+                if (robot.launcher.isAtTargetSpeed()) {
+                    // It's ready! Move to the next state to fire.
+                    currentState = ActionState.AUTO_SCOOP_CYCLE;
                     robot.scoop.up();
-                    scoopHasBeenMoved = true;
                     timer.reset();
+                } else if (timer.seconds() > LAUNCHER_SPINUP_TIMEOUT_SECONDS) {
+                    // It took too long to spin up. Abort the launch and stop the launcher to save battery.
+                    stopAll();
                 }
-                // TODO: Tune the duration for the scoop launch sequence.
-                if (timer.seconds() > 0.67) {
+                break;
+
+            case AUTO_SCOOP_CYCLE:
+                // The scoop is up. We wait for the cycle time to complete.
+                if (timer.seconds() > SCOOP_CYCLE_SECONDS) {
                     robot.scoop.down();
+                    // Auto sequence is over, everything should stop.
+                    stopAll();
+                }
+                break;
+
+            // --- TeleOp Manual Firing ---
+            case TELEOP_SCOOP_CYCLE:
+                // The scoop is up. We wait for the cycle time to complete.
+                if (timer.seconds() > SCOOP_CYCLE_SECONDS) {
+                    robot.scoop.down();
+                    // Return to IDLE, leaving the launcher on for the next shot.
                     currentState = ActionState.IDLE;
                 }
                 break;
@@ -99,10 +117,35 @@ public class ActionManager {
         timer.reset();
     }
 
-    public void launchFromScoop() {
+    /**
+     * Initiates the fully autonomous launch sequence.
+     * This will start the launcher, wait for it to reach speed, and then fire.
+     */
+    public void launchFromScoopAutonomous() {
+        // Do not start a new launch if another sequence is running.
         if (isBusy()) return;
-        scoopHasBeenMoved = false;
-        currentState = ActionState.LAUNCH_FROM_SCOOP;
+
+        // Start the flywheel motor.
+        robot.launcher.start();
+
+        // Transition to the state that waits for the flywheel to get to speed.
+        currentState = ActionState.AUTO_LAUNCHER_SPINUP;
+
+        // Reset the timer to begin the spin-up timeout.
+        timer.reset();
+    }
+
+    /**
+     * Initiates the manual TeleOp launch sequence.
+     * This ONLY cycles the scoop. It assumes the driver has already turned the launcher on.
+     */
+    public void launchFromScoopTeleop() {
+        // Allow this to be spammed to re-try a shot, but don't interrupt other critical actions.
+        if (isBusy() && currentState != ActionState.TELEOP_SCOOP_CYCLE) return;
+
+        // This action does not start the launcher. That's the driver's job.
+        currentState = ActionState.TELEOP_SCOOP_CYCLE;
+        robot.scoop.up();
         timer.reset();
     }
 
@@ -131,6 +174,7 @@ public class ActionManager {
     }
 
     public boolean isBusy() {
+        // Return true if the state machine is in any state other than IDLE.
         return currentState != ActionState.IDLE;
     }
 }

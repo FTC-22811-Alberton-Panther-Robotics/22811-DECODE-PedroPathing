@@ -3,10 +3,6 @@ package org.firstinspires.ftc.teamcode.RobotHardware;
 import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
-import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointConstants;
-import org.firstinspires.ftc.teamcode.pedroPathing.CustomPinpointLocalizer;
-import org.firstinspires.ftc.teamcode.pedroPathing.LimelightAprilTagLocalizer;
 
 /**
  * This class acts as a central container to hold and initialize all the robot's hardware subsystems.

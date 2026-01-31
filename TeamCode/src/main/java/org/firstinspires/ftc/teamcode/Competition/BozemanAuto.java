@@ -13,6 +13,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.DiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.ArrayList;
@@ -50,11 +51,11 @@ public class BozemanAuto extends OpMode {
     private enum StartPosition { FRONT, BACK }
 
     private enum AutoCommand {
+        SCORE_ALL_THREE_CLOSE,
+        SCORE_ALL_THREE_FAR,
         SPIKE_FRONT_AND_INTAKE,
         SPIKE_MIDDLE_AND_INTAKE,
         SPIKE_BACK_AND_INTAKE,
-        SCORE_ALL_THREE_CLOSE,
-        SCORE_ALL_THREE_FAR,
         HIT_GATE,
         PARK
     }
@@ -71,6 +72,7 @@ public class BozemanAuto extends OpMode {
     private boolean isPlaylistFinalized = false;
 
     // ========== OPMODE CORE MEMBERS ========== //
+    private CombinedLocalizer localizer;
     private Follower follower;
     private ElapsedTime timer = new ElapsedTime();
     private RobotHardwareContainer robot;
@@ -95,7 +97,8 @@ public class BozemanAuto extends OpMode {
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         actionManager = new ActionManager(robot);
 
-        follower = Constants.createFollower(hardwareMap, telemetry);
+        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        follower = Constants.createFollower(hardwareMap, localizer);
 
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
@@ -270,7 +273,7 @@ public class BozemanAuto extends OpMode {
             case 401: // This is a loop that fires all three artifacts.
                 if (!actionManager.isBusy()) { // Wait for the previous shot to complete.
                     if (scoreCycleArtifactCount < 3) {
-                        actionManager.launchFromScoop();
+                        actionManager.launchFromScoopAutonomous();
                         scoreCycleArtifactCount++;
                     } else {
                         advanceToNextCommand(); // All three have been fired, move on.

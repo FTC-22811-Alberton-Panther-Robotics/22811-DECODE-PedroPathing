@@ -97,7 +97,10 @@ public class CombinedLocalizer implements Localizer {
                 Pose fusedPose = new Pose(fusedX, fusedY, fusedHeading);
 
                 // Apply the newly corrected pose back to the pinpoint localizer
-                setPose(fusedPose);
+                // No need to call setPose here, which would incorrectly set isPoseReliable.
+                // Instead, call the pinpoint's setPose directly.
+                pinpoint.setPose(fusedPose);
+                isPoseReliable = true; // The pose is now reliable after a successful vision correction.
 
                 // After a successful correction, clear the pinpoint's history.
                 pinpoint.clearPoseHistory();
@@ -113,12 +116,6 @@ public class CombinedLocalizer implements Localizer {
             }
         } else {
             if (telemetry != null) telemetry.addData("Localization", "No vision data");
-        }
-
-        // If we haven't gotten a vision update yet, but the dead wheels are giving us
-        // valid numbers, then we can consider the pose reliable for driving.
-        if (!isPoseReliable && !pinpoint.isNAN()) {
-            isPoseReliable = true;
         }
 
         if (telemetry != null) {
@@ -139,10 +136,10 @@ public class CombinedLocalizer implements Localizer {
         Pose currentPose = getPose();
         if (currentPose == null) {
             setPose(new Pose(0, 0, Math.toRadians(90)));
-            isPoseReliable = false; // Explicitly mark as unreliable
         } else {
             setPose(new Pose(currentPose.getX(), currentPose.getY(), Math.toRadians(90)));
         }
+        isPoseReliable = false; // Explicitly mark as unreliable after any reset
     }
 
     @Override
@@ -153,13 +150,13 @@ public class CombinedLocalizer implements Localizer {
     @Override
     public void setPose(Pose pose) {
         pinpoint.setPose(pose);
-        isPoseReliable = true;
+        isPoseReliable = false; // Setting a pose should require re-validation from vision
     }
 
     @Override
     public void setStartPose(Pose setStart) {
         pinpoint.setStartPose(setStart);
-        isPoseReliable = true;
+        isPoseReliable = true; // Setting a start pose should assume the pose is reliable since it's a preset position or remembered from auto.
     }
 
     // All other methods from the Localizer interface simply delegate to the pinpoint localizer.

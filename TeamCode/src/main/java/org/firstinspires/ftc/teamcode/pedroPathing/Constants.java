@@ -7,6 +7,7 @@ import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.drivetrains.MecanumConstants;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.localization.Localizer;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -32,18 +33,8 @@ public class Constants {
             //.drivePIDFCoefficients(new FilteredPIDFCoefficients(0.1, 0, 0.00035, 0.6, 0.015)) // Tuned with DrivePIDTuner
             //.centripetalScaling(0.0005); // Tuned with CentripetalTuner
             ;
-    // Constants for our custom dead-wheel localizer
-    public static CustomPinpointConstants pinpointConstants = new CustomPinpointConstants();
 
-    // Constants for our custom Limelight localizer
-    public static LimelightConstants limelightConstants = new LimelightConstants();
-
-    public static PathConstraints pathConstraints = new PathConstraints(0.99, // Max velocity percentage
-            100,  // Max acceleration
-            1,    // De-acceleration ramp (don't change)
-            1     // De-acceleration ramp (don't change)
-    );
-
+    public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1.45, 1.28);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
@@ -72,15 +63,15 @@ public class Constants {
      * @param hardwareMap The hardwareMap from the OpMode.
      * @return A fully initialized Follower instance.
      */
-    public static Follower createFollower(HardwareMap hardwareMap, Telemetry telemetry) {
+    public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
         // Create the CombinedLocalizer which will be the single source of truth
         //CombinedLocalizer combinedLocalizer = new CombinedLocalizer(hardwareMap, telemetry);
         // Use the FollowerBuilder to construct the follower with our custom components
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .mecanumDrivetrain(driveConstants)
-//                .setLocalizer(combinedLocalizer) // Inject our fused localizer
+                .setLocalizer(localizer) // Inject our fused localizer
                 .pathConstraints(pathConstraints)
-                .pinpointLocalizer(localizerConstants)
+                //.pinpointLocalizer(localizerConstants)
                 .build();
     }
 }

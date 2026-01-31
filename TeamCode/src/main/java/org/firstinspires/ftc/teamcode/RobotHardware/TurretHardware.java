@@ -53,9 +53,9 @@ public class TurretHardware {
     private final int CALIBRATION_TIME_MS = 2000;
     private final double MANUAL_MOVE_SPEED = 4;
     
-    public static final double P = 10.0;
+    public static final double P = 20.0;
     public static final double I = 0.0;
-    public static final double D = 0.0;
+    public static final double D = 2.0;
     public static final double F = 0.0;
     public static final PIDFCoefficients TURRET_PIDF = new PIDFCoefficients(P, I, D, F);
 

@@ -18,6 +18,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.DiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.function.Supplier;
@@ -98,6 +99,7 @@ import java.util.function.Supplier;
  * X Button:              Reset any turret nudge adjustment
  * B Button:              Toggle drive mode (Robot-Centric, Field-Centric, Target-Lock)
  * Start Button:          Reset robot heading to 90 degrees
+ * Back Button:           Auto-park the robot
  *
  * === GAMEPAD 2 (Fallback) ===
  * Right Stick X-Axis:    Manual turret rotation override
@@ -108,6 +110,7 @@ public class BozemanTeleop extends OpMode {
 
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
+    private CombinedLocalizer localizer;
     private Follower follower;
     public static Pose startingPose;
     private boolean automatedDrive;
@@ -118,8 +121,10 @@ public class BozemanTeleop extends OpMode {
     private StartPosition startPosition = StartPosition.FRONT;
 
     // Drive Mode Logic
-    public enum DriveMode { ROBOT_CENTRIC, FIELD_CENTRIC, TARGET_LOCK, AUTO_PARK }
+    public enum DriveMode { ROBOT_CENTRIC, FIELD_CENTRIC, TARGET_LOCK}
     private DriveMode currentDriveMode = DriveMode.FIELD_CENTRIC;
+    public enum TeleOpState {MANUAL, AUTO_PARK}
+    private TeleOpState currentState = TeleOpState.MANUAL;
     private static final double HEADING_KP = 0.8; // Proportional gain for Target Lock
 
     // State variables for edge detection and controls
@@ -135,7 +140,8 @@ public class BozemanTeleop extends OpMode {
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
 
         // Create and get the single, authoritative instances of the Follower and Localizer
-        follower = Constants.createFollower(hardwareMap, telemetry);
+        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        follower = Constants.createFollower(hardwareMap, localizer);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
         telemetryM  = PanelsTelemetry.INSTANCE.getTelemetry();
@@ -143,7 +149,6 @@ public class BozemanTeleop extends OpMode {
         // Initialize hardware that depends on the follower
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
-
         actionManager = new ActionManager(robot);
 
         // Default to Blue Alliance, but allow selection during init.
@@ -163,9 +168,9 @@ public class BozemanTeleop extends OpMode {
         if (gamepad1.dpad_down) startPosition = StartPosition.FRONT;
 
         GameState.alliance = this.alliance;
-        telemetry.addData("Selected Alliance", alliance);
-        telemetry.addData("Selected Start", startPosition);
-        telemetry.update();
+        telemetryM.debug("Selected Alliance", alliance);
+        telemetryM.debug("Selected Start", startPosition);
+        telemetryM.update();
     }
 
     @Override
@@ -182,6 +187,7 @@ public class BozemanTeleop extends OpMode {
             // starting point for testing field-relative features.
             follower.setStartingPose((startPosition == StartPosition.FRONT) ? FieldPosePresets.BLUE_FRONT_START : FieldPosePresets.BLUE_BACK_START);
         }
+
         follower.update();
         follower.startTeleopDrive();
     }
@@ -194,6 +200,25 @@ public class BozemanTeleop extends OpMode {
         robot.turret.update(alliance);
         robot.launcher.update(alliance);
 
+        if (auto_diverter_enabled) {
+            robot.diverter.update();
+        }
+        // Main state machine for TeleOp
+        switch (currentState) {
+            case MANUAL:
+                handleControls();
+                break;
+            case AUTO_PARK:
+                handleAutoPark();
+                break;
+        }
+
+        was_manually_moving_turret = Math.abs(-gamepad2.right_stick_x) > 0.1;
+
+        updateTelemetry();
+    }
+
+    private void handleControls() {
         // This block now contains all the drive logic, calling the follower directly.
         switch (currentDriveMode) {
             case ROBOT_CENTRIC:
@@ -210,23 +235,8 @@ public class BozemanTeleop extends OpMode {
                     follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, calculatedTurn, false);
                 }
                 break;
-            case AUTO_PARK:
-                pathChain.get().update();
-                break;
         }
 
-        if (auto_diverter_enabled) {
-            robot.diverter.update();
-        }
-
-        handleControls();
-
-        was_manually_moving_turret = Math.abs(-gamepad2.right_stick_x) > 0.1;
-
-        updateTelemetry();
-    }
-
-    private void handleControls() {
         // Intake
         if (gamepad1.left_trigger > 0.1) {
             robot.intake.run();
@@ -248,7 +258,7 @@ public class BozemanTeleop extends OpMode {
 
         // Launching
         if (gamepad1.right_trigger > 0.1) {
-            actionManager.launchFromScoop();
+            actionManager.launchFromScoopTeleop();
             if (stagedArtifact == StagedArtifact.GREEN) {
                 robot.diverter.decrementGreenArtifactCount();
             } else if (stagedArtifact == StagedArtifact.PURPLE) {
@@ -271,15 +281,9 @@ public class BozemanTeleop extends OpMode {
             if (gamepad1.yWasPressed()) robot.turret.toggleAutoAim();
         }
 
-        /**
-          * Reset heading with start button, or set entire pose to (0, 0, 0) if it isn't set yet.
-          */
+        // Reset the heading to 90 degrees, make sure the robot is pointing toward the back of the field.
         if (gamepad1.startWasPressed()) {
-            if (follower.getPose() == null || Double.isNaN(follower.getPose().getX())){
-                follower.setPose(new Pose(0, 0, 0));
-            } else {
-                follower.setPose(new Pose(follower.getPose().getX(), follower.getPose().getY(), Math.toRadians(90)));
-            }
+            localizer.resetHeading();
         }
 
         // Diverter Manual Override
@@ -297,16 +301,12 @@ public class BozemanTeleop extends OpMode {
         }
 
         // Drive Mode
-        if (gamepad1.backWasPressed()) {
+        if (gamepad1.bWasPressed()) {
             switch (currentDriveMode) {
                 case ROBOT_CENTRIC: currentDriveMode = DriveMode.FIELD_CENTRIC; break;
                 case FIELD_CENTRIC: currentDriveMode = DriveMode.TARGET_LOCK; break;
                 case TARGET_LOCK: currentDriveMode = DriveMode.ROBOT_CENTRIC; break;
             }
-        }
-
-        if (gamepad1.backWasPressed()) {
-            autoPark();
         }
 
         // --- Alliance Toggle for Testing ---
@@ -318,7 +318,18 @@ public class BozemanTeleop extends OpMode {
             alliance = GameState.Alliance.BLUE;
             GameState.alliance = alliance;
         }
+
+        // Trigger the Auto-Park sequence with the 'Back' button, but only if localization pose is reliable.
+        if (gamepad1.backWasPressed() && localizer.isPoseReliable()) {
+            Pose parkPose = (GameState.alliance == GameState.Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
+            Pose currentPose = follower.getPose();
+            Path parkingPath = new Path(new BezierLine(currentPose, parkPose));
+            parkingPath.setLinearHeadingInterpolation(currentPose.getHeading(), parkPose.getHeading());
+            follower.followPath(parkingPath);
+            currentState = TeleOpState.AUTO_PARK;
+        }
     }
+
     public double calculateHeadingToGoal(Pose robotPose) {
         Pose targetGoal = (alliance == GameState.Alliance.BLUE)
                 ? FieldPosePresets.BLUE_GOAL_TARGET
@@ -326,37 +337,51 @@ public class BozemanTeleop extends OpMode {
         return Math.atan2(targetGoal.getY() - robotPose.getY(), targetGoal.getX() - robotPose.getX());
     }
 
+    /**
+     * Handles the autonomous parking state, waiting for the path to complete.
+     * Allows the driver to interrupt by moving the joysticks.
+     */
+    private void handleAutoPark() {
+        telemetry.addLine("--- AUTO-PARKING ---");
+        // When the follower is no longer busy, return to manual control.
+        if (!follower.isBusy()) {
+            currentState = TeleOpState.MANUAL;
+        }
+        // Allow the driver to interrupt the path by moving the sticks.
+        if (Math.abs(gamepad1.left_stick_y) > 0.1 || Math.abs(gamepad1.left_stick_x) > 0.1 || Math.abs(gamepad1.right_stick_x) > 0.1) {
+            follower.breakFollowing();
+            currentState = TeleOpState.MANUAL;
+        }
+    }
+
     private void updateTelemetry() {
-        telemetry.addData("Alliance", alliance.toString());
-        telemetry.addData("Drive Mode", currentDriveMode.toString());
-        telemetry.addData("Turret Calibrated", robot.turret.isCalibrated());
-        telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
-        telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
-        telemetry.addData("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
-        telemetry.addData("Staged Artifact", stagedArtifact.toString());
-        telemetry.addData("Green Artifacts", robot.diverter.getGreenArtifactCount());
-        telemetry.addData("Purple Artifacts", robot.diverter.getPurpleArtifactCount());
+        if (!localizer.isPoseReliable()) {
+            telemetryM.debug("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
+        }
+        telemetryM.debug("Alliance", alliance.toString());
+        telemetryM.debug("Drive Mode", currentDriveMode.toString());
+        telemetryM.debug("Turret Calibrated", robot.turret.isCalibrated());
+        telemetryM.debug("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
+        telemetryM.debug("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
+        telemetryM.debug("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
+        telemetryM.debug("Staged Artifact", stagedArtifact.toString());
+        telemetryM.debug("Green Artifacts", robot.diverter.getGreenArtifactCount());
+        telemetryM.debug("Purple Artifacts", robot.diverter.getPurpleArtifactCount());
 
         Pose currentPose = follower.getPose();
         if (currentPose != null) {
-            telemetry.addData("Robot X", "%.2f", currentPose.getX());
-            telemetry.addData("Robot Y", "%.2f", currentPose.getY());
-            telemetry.addData("Robot H", "%.1f", Math.toDegrees(currentPose.getHeading()));
-        } else {
-            telemetry.addLine("Pose: Initializing...");
-        }
-        telemetry.update();
-    }
+            telemetryM.debug("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
 
-    public void autoPark(){
-        pathChain = () -> follower.pathBuilder() //Lazy Curve Generation
-                .addPath(new Path(new BezierLine(follower::getPose, alliance == GameState.Alliance.BLUE ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE)))
-                .setHeadingInterpolation(HeadingInterpolator.tangent)
-                .build();
+        } else {
+            telemetryM.debug("Pose: Initializing...");
+        }
+        telemetryM.update();
     }
 
     @Override
     public void stop() {
-        follower.setTeleOpDrive(0, 0, 0, true);
+        if(follower != null) {
+            follower.breakFollowing();
+        }
     }
 }
