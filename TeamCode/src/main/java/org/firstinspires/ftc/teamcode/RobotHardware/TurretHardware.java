@@ -49,7 +49,7 @@ public class TurretHardware {
     private final int LEFT_LIMIT_TICKS = (int) ((LEFT_LIMIT_DEGREES - ZERO_POINT_DEGREES) * TURRET_TICKS_PER_DEGREE);
     private final int RIGHT_LIMIT_TICKS = (int) ((RIGHT_LIMIT_DEGREES - ZERO_POINT_DEGREES) * TURRET_TICKS_PER_DEGREE);
     private final int ACCEPTABLE_TOLERANCE_TICKS = (int) (TURRET_TICKS_PER_DEGREE * 1.0);
-    private final double CALIBRATION_POWER = -0.2;
+    private final double CALIBRATION_POWER = -0.3;
     private final int CALIBRATION_TIME_MS = 2000;
     private final double MANUAL_MOVE_SPEED = 4;
 
@@ -71,7 +71,7 @@ public class TurretHardware {
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         turretMotor.setDirection(DcMotorEx.Direction.REVERSE);
         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        turretMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION, TURRET_PIDF);
+        turretMotor.setVelocityPIDFCoefficients(P, I, D, F);
         turretMotor.setTargetPositionTolerance(ACCEPTABLE_TOLERANCE_TICKS);
         turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         turretMotor.setTargetPosition(turretMotor.getCurrentPosition());

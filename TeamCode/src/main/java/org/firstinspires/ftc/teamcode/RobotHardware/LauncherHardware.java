@@ -72,8 +72,8 @@ public class LauncherHardware {
         rightFlywheel = hardwareMap.get(DcMotorEx.class, "rightFlywheel");
 
         // TODO: Verify motor directions. They should spin in opposite directions.
-        leftFlywheel.setDirection(DcMotor.Direction.REVERSE);
-        rightFlywheel.setDirection(DcMotor.Direction.FORWARD);
+        leftFlywheel.setDirection(DcMotor.Direction.FORWARD);
+        rightFlywheel.setDirection(DcMotor.Direction.REVERSE);
 
         leftFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightFlywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);

@@ -22,10 +22,6 @@ public class TurretTuningOpMode extends OpMode {
     private int targetPositionTicks = 0;
     private double increment = 0.5;
 
-    // --- Button Press Trackers ---
-    private boolean dpad_up_pressed, dpad_down_pressed, dpad_left_pressed, dpad_right_pressed;
-    private boolean x_pressed, y_pressed, a_pressed, b_pressed, rb_pressed, lb_pressed;
-
     @Override
     public void init() {
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
@@ -39,6 +35,7 @@ public class TurretTuningOpMode extends OpMode {
         turretMotor.setPower(1.0);
 
         telemetry.addLine("Turret PIDF Tuner Initialized.");
+        telemetry.addLine("");
         telemetry.addLine("SAFETY FIRST: Ensure robot is propped up!");
         updateHelpTelemetry();
     }
@@ -62,33 +59,18 @@ public class TurretTuningOpMode extends OpMode {
         if (gamepad1.xWasPressed()) targetPositionTicks = convertDegreesToTicks(45); // Right
         if (gamepad1.aWasPressed()) targetPositionTicks = convertDegreesToTicks(-90); // Far Right (Calibration Point)
         // --- PIDF Value Adjustment ---
-        if (gamepad1.dpad_up && !dpad_up_pressed) p += increment;
-        if (gamepad1.dpad_down && !dpad_down_pressed) p -= increment;
+        if (gamepad1.dpadUpWasPressed()) p += increment;
+        if (gamepad1.dpadDownWasPressed()) p -= increment;
 
-        if (gamepad1.dpad_right && !dpad_right_pressed) d += (increment / 10); // D is usually smaller
-        if (gamepad1.dpad_left && !dpad_left_pressed) d -= (increment / 10);
+        if (gamepad1.dpadRightWasPressed()) d += (increment / 10); // D is usually smaller
+        if (gamepad1.dpadLeftWasPressed()) d -= (increment / 10);
         
-        if (gamepad1.right_bumper && !rb_pressed) i += (increment / 20); // I is usually very small
-        if (gamepad1.left_bumper && !lb_pressed) i -= (increment / 20);
-
-        updateButtonStates();
+        if (gamepad1.rightBumperWasPressed()) i += (increment / 20); // I is usually very small
+        if (gamepad1.leftBumperWasPressed()) i -= (increment / 20);
     }
 
     private int convertDegreesToTicks(double degrees) {
         return (int) ((degrees - ZERO_POINT_DEGREES) * TURRET_TICKS_PER_DEGREE);
-    }
-
-    private void updateButtonStates() {
-        dpad_up_pressed = gamepad1.dpad_up;
-        dpad_down_pressed = gamepad1.dpad_down;
-        dpad_left_pressed = gamepad1.dpad_left;
-        dpad_right_pressed = gamepad1.dpad_right;
-        x_pressed = gamepad1.x;
-        y_pressed = gamepad1.y;
-        a_pressed = gamepad1.a;
-        b_pressed = gamepad1.b;
-        rb_pressed = gamepad1.right_bumper;
-        lb_pressed = gamepad1.left_bumper;
     }
 
     private void updateHelpTelemetry() {
