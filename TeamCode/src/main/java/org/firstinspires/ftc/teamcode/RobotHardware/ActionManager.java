@@ -53,7 +53,7 @@ public class ActionManager {
             case TRANSFER_PURPLE_ARTIFACT_TO_SCOOP:
                 // TODO: Tune the duration for the purple artifact transfer.
                 if (timer.seconds() > 1.2) {
-                    robot.transfer.LeftTransferReturn();
+                    robot.transfer.returnLeft();
                     currentState = ActionState.IDLE;
                 }
                 break;
@@ -61,7 +61,7 @@ public class ActionManager {
             case TRANSFER_GREEN_ARTIFACT_TO_SCOOP:
                 // TODO: Tune the duration for the green artifact transfer.
                 if (timer.seconds() > 1.2) {
-                    robot.transfer.RightTransferReturn();
+                    robot.transfer.returnRight();
                     currentState = ActionState.IDLE;
                 }
                 break;
@@ -167,8 +167,8 @@ public class ActionManager {
     public void stopAll() {
         robot.intake.stop();
         robot.launcher.stop();
-        robot.transfer.LeftTransferReturn();
-        robot.transfer.RightTransferReturn();
+        robot.transfer.returnLeft();
+        robot.transfer.returnRight();
         robot.scoop.down();
         currentState = ActionState.IDLE;
     }

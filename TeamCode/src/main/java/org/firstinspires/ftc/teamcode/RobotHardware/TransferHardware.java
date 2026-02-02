@@ -48,12 +48,12 @@ public class TransferHardware {
     }
 
     /** Stops the left transfer belt. */
-    public void LeftTransferReturn(){
+    public void returnLeft(){
         leftTransfer.setPosition(STOP_POSITION);
     }
 
     /** Stops the right transfer belt. */
-    public void RightTransferReturn(){
+    public void returnRight(){
         rightTransfer.setPosition(STOP_POSITION);
     }
 

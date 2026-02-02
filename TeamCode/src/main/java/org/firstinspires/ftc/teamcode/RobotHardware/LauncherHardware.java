@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 /**
  * Manages the robot's launcher, which consists of two flywheel motors.
@@ -133,7 +134,7 @@ public class LauncherHardware {
     }
 
     /** Sets the flywheel velocity in RPM. */
-    private void setLaunchSpeed(double rpm) {
+    public void setLaunchSpeed(double rpm) {
         this.targetRPM = rpm;
         double ticksPerSecond = (rpm * TICKS_PER_REV) / 60.0;
         leftFlywheel.setVelocity(ticksPerSecond);
@@ -182,4 +183,6 @@ public class LauncherHardware {
     public double getLeftFlywheelRPM() { return (leftFlywheel.getVelocity() * 60.0 / TICKS_PER_REV); }
     public double getRightFlywheelRPM() { return (rightFlywheel.getVelocity() * 60.0 / TICKS_PER_REV); }
     public double getTargetRPM() { return isSpinning ? targetRPM : 0; }
+    public double getLeftFlywheelCurrent() { return leftFlywheel.getCurrent(CurrentUnit.AMPS); }
+    public double getRightFlywheelCurrent() { return rightFlywheel.getCurrent(CurrentUnit.AMPS); }
 }
