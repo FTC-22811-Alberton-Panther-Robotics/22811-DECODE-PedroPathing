@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
-@TeleOp(name = "Turret PIDF Tuning", group = "00 Tuning")
+@TeleOp(name = "Turret PIDF Tuning", group = "02 Tuning")
 public class TurretTuningOpMode extends OpMode {
 
     private DcMotorEx turretMotor;
@@ -18,7 +18,7 @@ public class TurretTuningOpMode extends OpMode {
     private final double ZERO_POINT_DEGREES = -90.0;
 
     // --- Tuning Variables ---
-    private double p = 10.0, i = 0.0, d = 0.0, f = 0.0;
+    private double p = 0.0, i = 0.0, d = 0.0, f = 0.0;
     private int targetPositionTicks = 0;
     private double increment = 0.5;
 
@@ -53,10 +53,10 @@ public class TurretTuningOpMode extends OpMode {
 
     private void handleInput() {
         // --- Target Position Control ---
-        if (gamepad1.yWasPressed()) targetPositionTicks = convertDegreesToTicks(-45);   // Center
-        if (gamepad1.left_trigger > .1) targetPositionTicks = convertDegreesToTicks(0);  // Left
+        if (gamepad1.yWasPressed()) targetPositionTicks = convertDegreesToTicks(0);   // Center
+        if (gamepad1.bWasPressed()) targetPositionTicks = convertDegreesToTicks(-45);  // Left
         if (gamepad1.xWasPressed()) targetPositionTicks = convertDegreesToTicks(45); // Right
-        if (gamepad1.right_trigger > .1) targetPositionTicks = convertDegreesToTicks(-90); // Far Right (Calibration Point)
+        if (gamepad1.aWasPressed()) targetPositionTicks = convertDegreesToTicks(-90); // Far Right (Calibration Point)
         // --- PIDF Value Adjustment ---
         if (gamepad1.dpadUpWasPressed()) p += increment;
         if (gamepad1.dpadDownWasPressed()) p -= increment;
@@ -67,8 +67,8 @@ public class TurretTuningOpMode extends OpMode {
         if (gamepad1.rightBumperWasPressed()) i += (increment / 20); // I is usually very small
         if (gamepad1.leftBumperWasPressed()) i -= (increment / 20);
 
-        if (gamepad1.aWasPressed()) f += increment;
-        if (gamepad1.bWasPressed()) f -= increment;
+        if (gamepad1.startWasPressed()) f += increment;
+        if (gamepad1.backWasPressed()) f -= increment;
 
     }
 
