@@ -44,8 +44,7 @@ public class TurretTuningOpMode extends OpMode {
     public void loop() {
         handleInput();
 
-        PIDFCoefficients pidf = new PIDFCoefficients(p, i, d, f);
-        turretMotor.setPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION, pidf);
+        turretMotor.setVelocityPIDFCoefficients(p, i, d, f);
 
         turretMotor.setTargetPosition(targetPositionTicks);
 
