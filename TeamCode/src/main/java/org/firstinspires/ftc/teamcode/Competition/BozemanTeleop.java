@@ -1,8 +1,5 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
-import com.bylazar.configurables.annotations.Configurable;
-import com.bylazar.telemetry.PanelsTelemetry;
-import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -66,7 +63,6 @@ import java.util.function.Supplier;
  *
  * DIVERTER & INTAKE:
  * [ ] VOLTAGE CALIBRATION: Calibrate analog feedback voltages in `DiverterHardware`.
- * [ ] LIMELIGHT ROI: Tune `ROI_MIN_Y` and `ROI_MAX_Y` in `DiverterHardware`.
  * [ ] JAM DETECTION: Tune `STUCK_TOLERANCE` in `DiverterHardware`.
  * [ ] LOGIC VALIDATION: Physically test the automatic artifact counting logic.
  * [ ] INTAKE POWER: Tune `INTAKE_POWER` in `IntakeHardware`.
@@ -115,7 +111,6 @@ public class BozemanTeleop extends OpMode {
     public static Pose startingPose;
     private boolean automatedDrive;
     private Supplier<PathChain> pathChain;
-    private TelemetryManager telemetryM;
     private GameState.Alliance alliance;
     private enum StartPosition {FRONT, BACK};
     private StartPosition startPosition = StartPosition.FRONT;
@@ -144,7 +139,6 @@ public class BozemanTeleop extends OpMode {
         follower = Constants.createFollower(hardwareMap, localizer);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
-        telemetryM  = PanelsTelemetry.INSTANCE.getTelemetry();
 
         // Initialize hardware that depends on the follower
         robot.initTurret(follower, hardwareMap);
@@ -168,9 +162,9 @@ public class BozemanTeleop extends OpMode {
         if (gamepad1.dpad_down) startPosition = StartPosition.FRONT;
 
         GameState.alliance = this.alliance;
-        telemetryM.debug("Selected Alliance", alliance);
-        telemetryM.debug("Selected Start", startPosition);
-        telemetryM.update();
+        telemetry.addData("Selected Alliance", alliance);
+        telemetry.addData("Selected Start", startPosition);
+        telemetry.update();
     }
 
     @Override
@@ -356,26 +350,26 @@ public class BozemanTeleop extends OpMode {
 
     private void updateTelemetry() {
         if (!localizer.isPoseReliable()) {
-            telemetryM.debug("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
+            telemetry.addLine("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
         }
-        telemetryM.debug("Alliance", alliance.toString());
-        telemetryM.debug("Drive Mode", currentDriveMode.toString());
-        telemetryM.debug("Turret Calibrated", robot.turret.isCalibrated());
-        telemetryM.debug("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
-        telemetryM.debug("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
-        telemetryM.debug("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
-        telemetryM.debug("Staged Artifact", stagedArtifact.toString());
-        telemetryM.debug("Green Artifacts", robot.diverter.getGreenArtifactCount());
-        telemetryM.debug("Purple Artifacts", robot.diverter.getPurpleArtifactCount());
-
+        telemetry.addData("Alliance", alliance.toString());
+        telemetry.addData("Drive Mode", currentDriveMode.toString());
+        telemetry.addData("Turret Calibrated", robot.turret.isCalibrated());
+        telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
+        telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
+        telemetry.addData("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
+        telemetry.addData("Flywheel Target Speed", "%.2f RPM", robot.launcher.getTargetRPM());
+        telemetry.addData("Flywheel Actual Speed", "%.2f L, %.2f R RPM", robot.launcher.getLeftFlywheelRPM(), robot.launcher.getRightFlywheelRPM());
+        telemetry.addData("Limelight ball detected color", robot.limelightBallDetector.getDetectedColor().toString());
+        telemetry.addData("Diverter ", robot.diverter.isStuck()? "STUCK" : "NOT STUCK");
         Pose currentPose = follower.getPose();
         if (currentPose != null) {
-            telemetryM.debug("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
+            telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
 
         } else {
-            telemetryM.debug("Pose: Initializing...");
+            telemetry.addLine("Pose: Initializing...");
         }
-        telemetryM.update();
+        telemetry.update();
     }
 
     @Override

@@ -79,10 +79,9 @@ public class FieldPosePresets {
 
 
     // ========== SHARED POSES ==========
-    /** The corner base for the blue alliance. */
-    public static Pose BLUE_BASE = new Pose(12, 12, Math.toRadians(180));
-    /** The corner base for the red alliance. */
-    public static Pose RED_BASE = new Pose(132, 12, Math.toRadians(0));
+    /** The end game parking locations. */
+    public static Pose BLUE_BASE = new Pose(104.5, 33, Math.toRadians(90));
+    public static Pose RED_BASE = new Pose(39.5, 33, Math.toRadians(90));
 
     // ========== GOAL TARGETS FOR AIMING ==========
     /** The physical center of the blue goal, used for turret and launcher aiming calculations. */

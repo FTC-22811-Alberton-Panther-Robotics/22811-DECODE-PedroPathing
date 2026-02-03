@@ -1,11 +1,8 @@
 package org.firstinspires.ftc.teamcode.RobotHardware;
 
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-
-import java.util.Optional;
 
 /**
  * Manages the robot's Artifact diverter mechanism. This class is a self-contained module
@@ -33,15 +30,7 @@ import java.util.Optional;
  *    it jammed. Tune this value to be sensitive enough to detect jams without giving
  *    false positives during normal movement.
  *
- * 4. Region of Interest (ROI): To prevent the Limelight from seeing Artifacts already
- *    inside the robot, we only look for new Artifacts in a specific vertical slice
- *    of the camera view. To tune `ROI_MIN_Y` and `ROI_MAX_Y`:
- *      a. In the Limelight web interface, look at the camera stream.
- *      b. The Y-coordinates range from -240 (top edge) to 240 (bottom edge).
- *      c. Find the Y-pixel values that define a band that is *only* outside your robot.
- *         `ROI_MIN_Y` should be the top of this band, and `ROI_MAX_Y` the bottom.
- *
- * 5. Counting Logic: The logic that infers which Artifact was sorted when a jam is
+ * 4. Counting Logic: The logic that infers which Artifact was sorted when a jam is
  *    detected is based on a physical assumption. This needs to be tested with the real
  *    robot to confirm it behaves as expected.
  * ---------------------------------------------------------------------------------
@@ -58,19 +47,12 @@ public class DiverterHardware {
     private int purpleArtifactCount = 0;
 
     // --- Calibration Constants ---
-    // TODO: Calibrate the voltage value for the green position.
     private static final double VOLTAGE_AT_GREEN_POS = 0.5;
-    // TODO: Calibrate the voltage value for the purple position.
     private static final double VOLTAGE_AT_PURPLE_POS = 2.5;
 
     public static final double GREEN_POSITION = 0.0;
     public static final double PURPLE_POSITION = 1.0;
     public static final double NEUTRAL_POSITION = 0.5;
-
-    // TODO: Tune the Region of Interest (ROI) to only see Artifacts outside the robot.
-    // Y-pixel coordinates for the detection ROI. Range is from -240.0 (top) to 240.0 (bottom).
-    private static final double ROI_MIN_Y = -100.0;
-    private static final double ROI_MAX_Y = 100.0;
 
     public enum GatePosition { GREEN, PURPLE, NEUTRAL }
     private GatePosition lastCommandedPosition = GatePosition.NEUTRAL;
@@ -82,36 +64,29 @@ public class DiverterHardware {
     }
 
     public void update() {
-        limelight.setPipeline(1); // Green Artifact pipeline
-        Optional<LLResultTypes.DetectorResult> greenArtifact = limelight.getLargestArtifactInROI(ROI_MIN_Y, ROI_MAX_Y);
+        GatePosition targetPosition;
+        LimelightBallDetector.DetectedBall detected = limelight.getDetectedColor();
 
-        limelight.setPipeline(2); // Purple Artifact pipeline
-        Optional<LLResultTypes.DetectorResult> purpleArtifact = limelight.getLargestArtifactInROI(ROI_MIN_Y, ROI_MAX_Y);
-
-        GatePosition targetPosition = GatePosition.NEUTRAL;
-
-        if (greenArtifact.isPresent() && purpleArtifact.isPresent()) {
-            if (greenArtifact.get().getTargetArea() > purpleArtifact.get().getTargetArea()) {
+        switch (detected) {
+            case GREEN:
                 targetPosition = GatePosition.GREEN;
-            } else {
+                break;
+            case PURPLE:
                 targetPosition = GatePosition.PURPLE;
-            }
-        } else if (greenArtifact.isPresent()) {
-            targetPosition = GatePosition.GREEN;
-        } else if (purpleArtifact.isPresent()) {
-            targetPosition = GatePosition.PURPLE;
+                break;
+            case NONE:
+            default:
+                targetPosition = GatePosition.NEUTRAL;
+                break;
         }
 
-        if (targetPosition == GatePosition.GREEN && greenArtifactCount >= 2) {
-            targetPosition = GatePosition.NEUTRAL;
-        } else if (targetPosition == GatePosition.PURPLE && purpleArtifactCount >= 2) {
+        if ((targetPosition == GatePosition.GREEN && greenArtifactCount >= 2) || 
+            (targetPosition == GatePosition.PURPLE && purpleArtifactCount >= 2)) {
             targetPosition = GatePosition.NEUTRAL;
         }
 
         setPosition(targetPosition);
 
-        // TODO: Test and verify this Artifact counting logic. The inference made when the gate
-        // is stuck might need to be adjusted based on physical robot behavior.
         if (isStuck()) {
             if (targetPosition == GatePosition.GREEN) purpleArtifactCount++;
             else if (targetPosition == GatePosition.PURPLE) greenArtifactCount++;
@@ -138,7 +113,6 @@ public class DiverterHardware {
     }
 
     public boolean isStuck() {
-        // TODO: Tune this tolerance. A value too high will not detect jams; too low will give false positives.
         final double STUCK_TOLERANCE = 0.10;
         return Math.abs(getActualPosition() - getCommandedPositionAsDouble()) > STUCK_TOLERANCE;
     }
