@@ -22,7 +22,7 @@ import com.pedropathing.geometry.Pose;
  *    X, Y, and Heading values from telemetry.
  * ---------------------------------------------------------------------------------
  */
-public class FieldPosePresets {
+public class  FieldPosePresets {
 
     // TODO: Verify all of these pose values on a physical field before competition.
 

@@ -41,7 +41,7 @@ public class DriverAssist {
     private DriveMode currentMode = DriveMode.ROBOT_CENTRIC;
 
     // TODO: Tune this Kp value for responsive but stable target locking.
-    private static final double HEADING_KP = 0.8;
+    private static final double HEADING_KP = 0.3;
 
     public DriverAssist(Follower follower, CombinedLocalizer localizer) {
         this.follower = follower;
