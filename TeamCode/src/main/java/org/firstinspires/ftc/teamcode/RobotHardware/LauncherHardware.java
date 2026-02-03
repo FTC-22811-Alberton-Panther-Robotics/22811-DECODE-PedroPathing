@@ -50,16 +50,16 @@ public class LauncherHardware {
     // --- Launcher Speed Interpolation Constants ---
     // TODO: Tune these two points to define the shot curve for your robot.
     private static final Pose CLOSE_SHOT_POSE = new Pose(75, 81, 0); // A sample close shot position
-    private static final double CLOSE_SHOT_RPM = 1200.0;
+    private static final double CLOSE_SHOT_RPM = 2500;
     private static final Pose FAR_SHOT_POSE = new Pose(84, 11, 0);   // A sample far shot position
-    private static final double FAR_SHOT_RPM = 1350.0;
+    private static final double FAR_SHOT_RPM = 2700;
 
     // Cached distances for interpolation, calculated once on first use.
     private static double closeShotDistance = -1;
     private static double farShotDistance = -1;
 
     // --- Physical & State Constants ---
-    public static final double RPM_TOLERANCE = 25;
+    public static final double RPM_TOLERANCE = 10;
     public static final double TICKS_PER_REV = 28;
     private double targetRPM = 0;
     private boolean isSpinning = false; // The current state of the launcher

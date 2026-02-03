@@ -4,7 +4,6 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.MathFunctions;
-import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -103,7 +102,6 @@ import java.util.function.Supplier;
  */
 @TeleOp(name = "BozemanTeleop", group = "01 Bozeman")
 public class BozemanTeleop extends OpMode {
-
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
     private CombinedLocalizer localizer;
@@ -140,9 +138,8 @@ public class BozemanTeleop extends OpMode {
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
 
-        // Initialize hardware that depends on the follower
-        robot.initTurret(follower, hardwareMap);
-        robot.initLauncher(follower, hardwareMap);
+        robot.turret.init(hardwareMap);
+        robot.launcher.init(hardwareMap);
         actionManager = new ActionManager(robot);
 
         // Default to Blue Alliance, but allow selection during init.

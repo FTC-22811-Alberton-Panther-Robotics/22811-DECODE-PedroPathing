@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.RobotHardware.ScoopHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
 
-@TeleOp(name = "Launcher Speed Tuning", group = "02 Tuning")
+@TeleOp(name = "Launcher Speed Tuning", group = "Tuning")
 public class LauncherTuningOpMode extends OpMode {
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
@@ -31,14 +31,6 @@ public class LauncherTuningOpMode extends OpMode {
         // We don't need a follower for this tuning OpMode
         actionManager = new ActionManager(robot) ;
         launcher = new LauncherHardware(null);
-        intake = new IntakeHardware();
-        transfer = new TransferHardware();
-        scoop = new ScoopHardware();
-
-        launcher.init(hardwareMap);
-        intake.init(hardwareMap);
-        transfer.init(hardwareMap);
-        scoop.init(hardwareMap);
 
         telemetry.addLine("Launcher Tuning OpMode Initialized.");
         telemetry.addLine("A: Toggle Launcher | D-Pad U/D: Adjust RPM");
