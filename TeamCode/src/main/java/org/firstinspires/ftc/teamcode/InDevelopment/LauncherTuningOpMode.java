@@ -2,14 +2,18 @@ package org.firstinspires.ftc.teamcode.InDevelopment;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.IntakeHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.LauncherHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.RobotHardware.ScoopHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
 
 @TeleOp(name = "Launcher Speed Tuning", group = "02 Tuning")
 public class LauncherTuningOpMode extends OpMode {
-
+    private RobotHardwareContainer robot;
+    private ActionManager actionManager;
     private LauncherHardware launcher;
     private IntakeHardware intake;
     private TransferHardware transfer;
@@ -22,7 +26,10 @@ public class LauncherTuningOpMode extends OpMode {
 
     @Override
     public void init() {
+
+        robot = new RobotHardwareContainer(hardwareMap, telemetry);
         // We don't need a follower for this tuning OpMode
+        actionManager = new ActionManager(robot) ;
         launcher = new LauncherHardware(null);
         intake = new IntakeHardware();
         transfer = new TransferHardware();
@@ -40,6 +47,7 @@ public class LauncherTuningOpMode extends OpMode {
 
     @Override
     public void loop() {
+        actionManager.update();
         handleLauncherControls();
         handleMechanismControls();
         updateTelemetry();
@@ -48,13 +56,12 @@ public class LauncherTuningOpMode extends OpMode {
     private void handleLauncherControls() {
         if (gamepad1.aWasPressed()) {
             launcherOn = !launcherOn;
-            if (launcherOn) {
-                launcher.setLaunchSpeed(targetRPM);
-            } else {
-                launcher.stop();
-            }
         }
-
+        if (launcherOn) {
+            launcher.setLaunchSpeed(targetRPM);
+        } else {
+            launcher.stop();
+        }
         if (launcherOn) {
             if (gamepad1.dpadUpWasPressed()) {
                 targetRPM += RPM_INCREMENT;
@@ -77,14 +84,11 @@ public class LauncherTuningOpMode extends OpMode {
 
         // --- Transfer/Kicker ---
         if (gamepad1.leftBumperWasPressed()) {
-            transfer.runLeft();
-        } else {
-            transfer.returnLeft();
+            actionManager.startTransferGreenArtifact();
+
         }
         if (gamepad1.rightBumperWasPressed()) {
-            transfer.runRight();
-        } else {
-            transfer.returnRight();
+            actionManager.startTransferPurpleArtifact();
         }
 
         // --- Scoop ---

@@ -17,10 +17,10 @@ public class TurretTuningOpMode extends OpMode {
     private final double TURRET_TICKS_PER_DEGREE = (MOTOR_TICKS_PER_REV * GEAR_RATIO) / 360.0;
     private final double ZERO_POINT_DEGREES = -90.0;
 
-    // --- Tuning Variables ---
-    private double p = 0.0, i = 0.0, d = 0.0, f = 0.0;
+    // --- Tuning Variales ---
+    private double p = 75.0, i = 4.0, d = 7.5, f = 5.0;
     private int targetPositionTicks = 0;
-    private double increment = 0.5;
+    private double increment = 5;
 
     @Override
     public void init() {
@@ -67,8 +67,8 @@ public class TurretTuningOpMode extends OpMode {
         if (gamepad1.rightBumperWasPressed()) i += (increment / 20); // I is usually very small
         if (gamepad1.leftBumperWasPressed()) i -= (increment / 20);
 
-        if (gamepad1.startWasPressed()) f += increment;
-        if (gamepad1.backWasPressed()) f -= increment;
+        if (gamepad1.startWasPressed()) f += (increment/10);
+        if (gamepad1.backWasPressed()) f -= (increment/10);
 
     }
 
