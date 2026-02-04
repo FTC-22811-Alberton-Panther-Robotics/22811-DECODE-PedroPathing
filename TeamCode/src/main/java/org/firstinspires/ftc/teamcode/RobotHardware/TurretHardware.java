@@ -46,10 +46,11 @@ public class TurretHardware {
     private final double ZERO_POINT_DEGREES = -90.0;
     private final double LEFT_LIMIT_DEGREES = 85.0;
     private final double RIGHT_LIMIT_DEGREES = -85.0;
+    private final double CENTER_POINT_DEGREES = 0;
     private final int LEFT_LIMIT_TICKS = (int) ((LEFT_LIMIT_DEGREES - ZERO_POINT_DEGREES) * TURRET_TICKS_PER_DEGREE);
     private final int RIGHT_LIMIT_TICKS = (int) ((RIGHT_LIMIT_DEGREES - ZERO_POINT_DEGREES) * TURRET_TICKS_PER_DEGREE);
     private final int ACCEPTABLE_TOLERANCE_TICKS = (int) (TURRET_TICKS_PER_DEGREE * 1.0);
-    private final double CALIBRATION_POWER = -0.3;
+    private final double CALIBRATION_POWER = -0.4;
     private final int CALIBRATION_TIME_MS = 2000;
     private final double MANUAL_MOVE_SPEED = 4;
 
@@ -92,6 +93,8 @@ public class TurretHardware {
                 turretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 setModeToAuto();
                 calibrationState = CalibrationState.CALIBRATED;
+                updateAutoAim(alliance);
+                turretMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
             return; // Don't allow other actions during calibration
         }

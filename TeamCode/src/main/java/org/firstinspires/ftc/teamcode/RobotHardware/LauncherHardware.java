@@ -26,7 +26,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
  * 3. (CRITICAL) Distance-to-Velocity Mapping: The automatic speed control uses a 3-point
  *    quadratic interpolation. To tune:
  *      a. Place the robot at your desired close, middle, and far shot positions.
- *      b. Record the poses in `CLOSE_SHOT_POSE`, `MID_SHOT_POSE`, and `FAR_SHOT_POSE`.
+ *      b. Record the poses in `RED_CLOSE_SHOT_POSE`, `MID_SHOT_POSE`, and `RED_FAR_SHOT_POSE`.
  *      c. Manually find the flywheel RPM needed for a successful shot at each of these three distances.
  *      d. Set these values in `CLOSE_SHOT_RPM`, `MID_SHOT_RPM`, and `FAR_SHOT_RPM`.
  *      e. The code will automatically calculate the speed for any distance in between.
@@ -49,11 +49,11 @@ public class LauncherHardware {
     public static final PIDFCoefficients LAUNCHER_PIDF = new PIDFCoefficients(300, 0, 0, 10);
 
     // --- Launcher Speed Interpolation Constants (3-Point Quadratic) ---
-    private static final Pose CLOSE_SHOT_POSE = new Pose(108, 108, 45);
+    private static final Pose RED_CLOSE_SHOT_POSE = new Pose(108, 108, 45);
     private static final double CLOSE_SHOT_RPM = 2700;
-    private static final Pose MID_SHOT_POSE = new Pose(83.53, 83.53, 45); // New mid-point for the curve
+    private static final Pose RED_MID_SHOT_POSE = new Pose(84, 83.53, 45); // New mid-point for the curve
     private static final double MID_SHOT_RPM = 3000;
-    private static final Pose FAR_SHOT_POSE = new Pose(84, 11, 65);
+    private static final Pose RED_FAR_SHOT_POSE = new Pose(84, 11, 65);
     private static final double FAR_SHOT_RPM = 4000;
 
     // Cached values for interpolation, calculated once on first use.
@@ -125,9 +125,9 @@ public class LauncherHardware {
         // On the first run, calculate the distances and the constant denominators for the formula.
         if (closeShotDistance < 0) {
             Pose goal = FieldPosePresets.RED_GOAL_TARGET;
-            closeShotDistance = Math.hypot(goal.getX() - CLOSE_SHOT_POSE.getX(), goal.getY() - CLOSE_SHOT_POSE.getY());
-            midShotDistance = Math.hypot(goal.getX() - MID_SHOT_POSE.getX(), goal.getY() - MID_SHOT_POSE.getY());
-            farShotDistance = Math.hypot(goal.getX() - FAR_SHOT_POSE.getX(), goal.getY() - FAR_SHOT_POSE.getY());
+            closeShotDistance = Math.hypot(goal.getX() - RED_CLOSE_SHOT_POSE.getX(), goal.getY() - RED_CLOSE_SHOT_POSE.getY());
+            midShotDistance = Math.hypot(goal.getX() - RED_MID_SHOT_POSE.getX(), goal.getY() - RED_MID_SHOT_POSE.getY());
+            farShotDistance = Math.hypot(goal.getX() - RED_FAR_SHOT_POSE.getX(), goal.getY() - RED_FAR_SHOT_POSE.getY());
 
             // Pre-calculate the denominators for the Lagrange basis polynomials to save cycles.
             l0_denom = (closeShotDistance - midShotDistance) * (closeShotDistance - farShotDistance);

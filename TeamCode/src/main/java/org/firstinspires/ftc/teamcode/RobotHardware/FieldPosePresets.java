@@ -36,18 +36,18 @@ public class  FieldPosePresets {
     public static Pose BLUE_SCORE_CLOSE_TO_GOAL = new Pose(60, 84, Math.toRadians(135));
     public static Pose BLUE_SCORE_FAR_FROM_GOAL = new Pose(54, 12, Math.toRadians(112));
     /** Pose to pick up an artifact from the front spike mark. */
-    public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(0));
+    public static Pose BLUE_PICKUP_FRONT_SPIKE = new Pose(40, 36, Math.toRadians(180));
     /** Pose to pick up an artifact from the middle spike mark. */
-    public static Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(0));
+    public static Pose BLUE_PICKUP_MIDDLE_SPIKE = new Pose(40, 60, Math.toRadians(180));
     /** Pose to pick up an artifact from the back spike mark. */
-    public static Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(0));
+    public static Pose BLUE_PICKUP_BACK_SPIKE = new Pose(40, 84, Math.toRadians(180));
 
     /** A safe parking position for the blue alliance. */
-    public static Pose BLUE_AUTO_PARK = new Pose(60, 60, Math.toRadians(180));
+    public static Pose BLUE_AUTO_PARK = new Pose(60, 60, Math.toRadians(90));
     /** A position to approach the gate before passing through. */
-    public static Pose BLUE_GATE_APPROACH = new Pose(20, 72, Math.toRadians(180));
+    public static Pose BLUE_GATE_APPROACH = new Pose(20, 72, Math.toRadians(90));
     /** The position to be at when triggering the gate. */
-    public static Pose BLUE_GATE_TRIGGER = new Pose(16, 72, Math.toRadians(180));
+    public static Pose BLUE_GATE_TRIGGER = new Pose(16, 72, Math.toRadians(90));
     /** A position to read the obelisk from the blue side. */
     public static Pose BLUE_READ_OBELISK_POSE = new Pose(48, 108, Math.toRadians(90));
 
@@ -62,18 +62,18 @@ public class  FieldPosePresets {
     public static Pose RED_SCORE_CLOSE_TO_GOAL = new Pose(84, 84, Math.toRadians(45));
     public static Pose RED_SCORE_FAR_FROM_GOAL = new Pose(90, 12, Math.toRadians(68));
     /** Pose to pick up an artifact from the front spike mark. */
-    public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(180));
+    public static Pose RED_PICKUP_FRONT_SPIKE = new Pose(104, 36, Math.toRadians(0));
     /** Pose to pick up an artifact from the middle spike mark. */
-    public static Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(104, 60, Math.toRadians(180));
+    public static Pose RED_PICKUP_MIDDLE_SPIKE = new Pose(104, 60, Math.toRadians(0));
     /** Pose to pick up an artifact from the back spike mark. */
-    public static Pose RED_PICKUP_BACK_SPIKE = new Pose(104, 84, Math.toRadians(180));
+    public static Pose RED_PICKUP_BACK_SPIKE = new Pose(104, 84, Math.toRadians(0));
 
     /** A safe parking position for the red alliance. */
     public static Pose RED_AUTO_PARK = new Pose(84, 60, Math.toRadians(0));
     /** A position to approach the gate before passing through. */
-    public static Pose RED_GATE_APPROACH = new Pose(124, 72, Math.toRadians(0));
+    public static Pose RED_GATE_APPROACH = new Pose(124, 72, Math.toRadians(90));
     /** The position to be at when triggering the gate. */
-    public static Pose RED_GATE_TRIGGER = new Pose(128, 72, Math.toRadians(0));
+    public static Pose RED_GATE_TRIGGER = new Pose(128, 72, Math.toRadians(90));
     /** A position to read the obelisk from the red side. */
     public static Pose RED_READ_OBELISK_POSE = new Pose(96, 108, Math.toRadians(90));
 
