@@ -24,6 +24,7 @@ public class TurretTuningOpMode extends OpMode {
 
     @Override
     public void init() {
+
         turretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         turretMotor.setDirection(DcMotorEx.Direction.REVERSE);
         turretMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

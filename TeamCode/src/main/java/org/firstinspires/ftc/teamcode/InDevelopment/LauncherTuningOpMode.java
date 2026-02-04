@@ -36,9 +36,8 @@ public class LauncherTuningOpMode extends OpMode {
         follower = Constants.createFollower(hardwareMap, localizer);
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         // We don't need a follower for this tuning OpMode
-        actionManager = new ActionManager(robot);
+        actionManager = new ActionManager(robot) ;
         robot.initLauncher(follower, hardwareMap);
-
         telemetry.addLine("Launcher Tuning OpMode Initialized.");
         telemetry.addLine("A: Toggle Launcher | D-Pad U/D: Adjust RPM");
         telemetry.update();
@@ -76,9 +75,9 @@ public class LauncherTuningOpMode extends OpMode {
     private void handleMechanismControls() {
         // --- Intake ---
         if (gamepad1.left_trigger > .1) {
-            robot.intake.run();
+            intake.run();
         } else {
-            robot.intake.stop();
+            intake.stop();
         }
 
         // --- Transfer/Kicker ---
@@ -92,9 +91,9 @@ public class LauncherTuningOpMode extends OpMode {
 
         // --- Scoop ---
         if (gamepad1.right_trigger > .1) {
-            robot.scoop.up();
+            scoop.up();
         } else {
-            robot.scoop.down();
+            scoop.down();
         }
     }
 

@@ -49,12 +49,12 @@ public class LauncherHardware {
     public static final PIDFCoefficients LAUNCHER_PIDF = new PIDFCoefficients(300, 0, 0, 10);
 
     // --- Launcher Speed Interpolation Constants (3-Point Quadratic) ---
-    private static final Pose CLOSE_SHOT_POSE = new Pose(75, 81, 0);
-    private static final double CLOSE_SHOT_RPM = 2500;
-    private static final Pose MID_SHOT_POSE = new Pose(72, 72, 0); // New mid-point for the curve
-    private static final double MID_SHOT_RPM = 2600;
-    private static final Pose FAR_SHOT_POSE = new Pose(84, 11, 0);
-    private static final double FAR_SHOT_RPM = 2700;
+    private static final Pose CLOSE_SHOT_POSE = new Pose(108, 108, 45);
+    private static final double CLOSE_SHOT_RPM = 2700;
+    private static final Pose MID_SHOT_POSE = new Pose(83.53, 83.53, 45); // New mid-point for the curve
+    private static final double MID_SHOT_RPM = 3000;
+    private static final Pose FAR_SHOT_POSE = new Pose(84, 11, 65);
+    private static final double FAR_SHOT_RPM = 4000;
 
     // Cached values for interpolation, calculated once on first use.
     private static double closeShotDistance = -1, midShotDistance = -1, farShotDistance = -1;
