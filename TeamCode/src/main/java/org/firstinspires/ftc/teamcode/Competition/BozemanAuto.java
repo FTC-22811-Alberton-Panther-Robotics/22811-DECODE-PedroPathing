@@ -265,35 +265,34 @@ public class BozemanAuto extends OpMode {
             case SPIKE_FRONT_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.FRONT;
                 intakeColorOrder = SPIKE_FRONT_COLORS;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), frontSpike)));
+                followerPathBuilder(frontSpike);
                 setPathState(300); // Enter the intake cycle state machine
                 break;
             case SPIKE_MIDDLE_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.MIDDLE;
                 intakeColorOrder = SPIKE_MIDDLE_COLORS;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), middleSpike)));
+                followerPathBuilder(middleSpike);
                 setPathState(300);
                 break;
             case SPIKE_BACK_AND_INTAKE:
                 currentSpikeContext = SpikeLocation.BACK;
                 intakeColorOrder = SPIKE_BACK_COLORS;
-                follower.followPath(new Path(new BezierLine(follower.getPose(), backSpike)));
+                followerPathBuilder(backSpike);
                 setPathState(300);
                 break;
             case SCORE_ALL_THREE_CLOSE:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), scoreClosePose)));
+                followerPathBuilder(scoreClosePose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case SCORE_ALL_THREE_FAR:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), scoreFarPose)));
+                followerPathBuilder(scoreClosePose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case HIT_GATE:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), gateApproachPose)));
+                followerPathBuilder(gateApproachPose);
                 setPathState(200); // Enter the gate hitting state machine
                 break;
-            case PARK:
-                follower.followPath(new Path(new BezierLine(follower.getPose(), parkPose)));
+            case PARK: followerPathBuilder(parkPose);
                 setPathState(2); // Use the simple "wait" state
                 break;
         }
