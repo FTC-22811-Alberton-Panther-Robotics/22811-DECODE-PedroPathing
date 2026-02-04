@@ -138,8 +138,8 @@ public class BozemanTeleop extends OpMode {
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
 
-        robot.turret.init(hardwareMap);
-        robot.launcher.init(hardwareMap);
+        robot.initTurret(follower, hardwareMap);
+        robot.initLauncher(follower, hardwareMap);
         actionManager = new ActionManager(robot);
 
         // Default to Blue Alliance, but allow selection during init.

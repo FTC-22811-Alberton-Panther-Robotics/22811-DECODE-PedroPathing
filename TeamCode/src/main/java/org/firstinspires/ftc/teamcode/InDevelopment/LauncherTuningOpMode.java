@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.InDevelopment;
 
+import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -9,9 +10,13 @@ import org.firstinspires.ftc.teamcode.RobotHardware.LauncherHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.RobotHardware.ScoopHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.TransferHardware;
+import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @TeleOp(name = "Launcher Speed Tuning", group = "Tuning")
 public class LauncherTuningOpMode extends OpMode {
+    private Follower follower;
+    private CombinedLocalizer localizer;
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
     private LauncherHardware launcher;
@@ -27,11 +32,12 @@ public class LauncherTuningOpMode extends OpMode {
     @Override
     public void init() {
 
+        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        follower = Constants.createFollower(hardwareMap, localizer);
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         // We don't need a follower for this tuning OpMode
         actionManager = new ActionManager(robot) ;
-        launcher = new LauncherHardware(null);
-
+        robot.initLauncher(follower, hardwareMap);
         telemetry.addLine("Launcher Tuning OpMode Initialized.");
         telemetry.addLine("A: Toggle Launcher | D-Pad U/D: Adjust RPM");
         telemetry.update();
@@ -50,18 +56,18 @@ public class LauncherTuningOpMode extends OpMode {
             launcherOn = !launcherOn;
         }
         if (launcherOn) {
-            launcher.setLaunchSpeed(targetRPM);
+            robot.launcher.setLaunchSpeed(targetRPM);
         } else {
-            launcher.stop();
+            robot.launcher.stop();
         }
         if (launcherOn) {
             if (gamepad1.dpadUpWasPressed()) {
                 targetRPM += RPM_INCREMENT;
-                launcher.setLaunchSpeed(targetRPM);
+                robot.launcher.setLaunchSpeed(targetRPM);
             }
             if (gamepad1.dpadDownWasPressed()) {
                 targetRPM -= RPM_INCREMENT;
-                launcher.setLaunchSpeed(targetRPM);
+                robot.launcher.setLaunchSpeed(targetRPM);
             }
         }
     }
@@ -95,11 +101,11 @@ public class LauncherTuningOpMode extends OpMode {
         telemetry.addData("Launcher State", launcherOn ? "ON" : "OFF");
         telemetry.addData("Target RPM", "%.0f", targetRPM);
         telemetry.addLine("------------");
-        telemetry.addData("Left Flywheel RPM", "%.0f", launcher.getLeftFlywheelRPM());
-        telemetry.addData("Right Flywheel RPM", "%.0f", launcher.getRightFlywheelRPM());
+        telemetry.addData("Left Flywheel RPM", "%.0f", robot.launcher.getLeftFlywheelRPM());
+        telemetry.addData("Right Flywheel RPM", "%.0f", robot.launcher.getRightFlywheelRPM());
         telemetry.addLine("------------");
-        telemetry.addData("Left Flywheel Current (A)", "%.2f", launcher.getLeftFlywheelCurrent());
-        telemetry.addData("Right Flywheel Current (A)", "%.2f", launcher.getRightFlywheelCurrent());
+        telemetry.addData("Left Flywheel Current (A)", "%.2f", robot.launcher.getLeftFlywheelCurrent());
+        telemetry.addData("Right Flywheel Current (A)", "%.2f", robot.launcher.getRightFlywheelCurrent());
         telemetry.update();
     }
 }
