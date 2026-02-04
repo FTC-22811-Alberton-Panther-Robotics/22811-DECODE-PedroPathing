@@ -69,6 +69,7 @@ public class BozemanAuto extends OpMode {
     private ArrayList<AutoCommand> autoCommands = new ArrayList<>();
     private int commandMenuIndex = 0;
     private int currentCommandIndex = 0;
+    private boolean isStartPoseSelected = false;
     private boolean isPlaylistFinalized = false;
 
     // ========== OPMODE CORE MEMBERS ========== //
@@ -110,45 +111,17 @@ public class BozemanAuto extends OpMode {
 
     @Override
     public void init_loop() {
-        if (gamepad1.xWasPressed()) {
-            isPlaylistFinalized = !isPlaylistFinalized;
-        }
-
-        if (!isPlaylistFinalized) {
-            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
-            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
-
-            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
-            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
-
-            AutoCommand[] allCommands = AutoCommand.values();
-            if (gamepad1.dpadRightWasPressed()) commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
-            if (gamepad1.dpadLeftWasPressed()) commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
-
-            if (gamepad1.aWasPressed()) autoCommands.add(allCommands[commandMenuIndex]);
-            if (gamepad1.yWasPressed()) autoCommands.clear();
-            if (gamepad1.bWasPressed() && !autoCommands.isEmpty()) {
-                autoCommands.remove(autoCommands.size() - 1);
-            }
-        }
-
-        if (isPlaylistFinalized) {
-            telemetry.addLine("*** PLAYLIST FINALIZED (Press X to Unlock) ***");
-        } else {
-            telemetry.addData("--> Selected Command", AutoCommand.values()[commandMenuIndex]);
-        }
-        telemetry.addData("Alliance", alliance).addData("Start", startPosition);
-        telemetry.addLine("\nCurrent Playlist:");
-        for (int i = 0; i < autoCommands.size(); i++) {
-            telemetry.addLine((i+1) + ". " + autoCommands.get(i));
-        }
-        telemetry.update();
+        if (!isStartPoseSelected) {
+            selectStartingLocation();
+        }else playlistBuilder();
     }
 
     @Override
     public void start() {
         GameState.alliance = this.alliance;
         robot.turret.calibrate(); // Start non-blocking calibration
+        robot.intake.run();
+        robot.launcher.start();
 
         calculatePoses();
         follower.setStartingPose(startPose);
@@ -158,6 +131,7 @@ public class BozemanAuto extends OpMode {
         } else {
             setPathState(-1);
         }
+        follower.update();
     }
 
     @Override
@@ -328,5 +302,85 @@ public class BozemanAuto extends OpMode {
     private void advanceToNextCommand() {
         currentCommandIndex++;
         setPathState(1);
+    }
+
+    /**
+     * A helper method to build the path from the robot's current position to the next target position.
+     * @param targetPose
+     */
+    private void followerPathBuilder(Pose targetPose){
+        follower.followPath(follower.pathBuilder()
+                .addPath(new BezierLine(follower.getPose(), targetPose))
+                .setLinearHeadingInterpolation(follower.getHeading(), targetPose.getHeading())
+                .build());
+    }
+
+    private void selectStartingLocation(){
+        // Allow alliance and starting position selection before the match begins.
+        if (gamepad1.dpad_left || gamepad2.dpad_left) {
+            GameState.alliance = GameState.Alliance.BLUE;
+        }
+        if (gamepad1.dpad_right || gamepad2.dpad_right) {
+            GameState.alliance = GameState.Alliance.RED;
+        }
+        if (gamepad1.dpad_up || gamepad2.dpad_up) startPosition = StartPosition.BACK;
+        if (gamepad1.dpad_down || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
+
+        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()){
+            isStartPoseSelected = true;
+        }
+
+        // Provide continuous feedback on the driver station
+        telemetry.addLine("Blue/Red Alliance: dPad left/right");
+        telemetry.addLine("Starting Position Back/Front: dPad up/down");
+        telemetry.addData("Selected Alliance", GameState.alliance);
+        telemetry.addData("Selected Start", startPosition);
+        telemetry.addData("Action State", actionManager.getCurrentState());
+        telemetry.addLine("\nPress 'A/X to confirm and start building playlist");
+        telemetry.update();
+    }
+
+    private void playlistBuilder() {
+        // Allow the user to lock the playlist to prevent accidental changes
+        if (gamepad1.xWasPressed()) {
+            isPlaylistFinalized = !isPlaylistFinalized;
+        }
+
+        // Only allow modifications if the playlist is not finalized
+        if (!isPlaylistFinalized) {
+            // --- Configure Alliance and Start Position ---
+            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
+            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
+
+            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
+            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
+
+            // --- Build the Playlist ---
+            AutoCommand[] allCommands = AutoCommand.values();
+            // Scroll through commands with D-Pad
+            if (gamepad1.dpadRightWasPressed())
+                commandMenuIndex = (commandMenuIndex + 1) % allCommands.length;
+            if (gamepad1.dpadLeftWasPressed())
+                commandMenuIndex = (commandMenuIndex - 1 + allCommands.length) % allCommands.length;
+
+            // Add, remove, or clear commands
+            if (gamepad1.aWasPressed()) autoCommands.add(allCommands[commandMenuIndex]);
+            if (gamepad1.yWasPressed()) autoCommands.clear();
+            if (gamepad1.bWasPressed() && !autoCommands.isEmpty()) {
+                autoCommands.remove(autoCommands.size() - 1);
+            }
+        }
+        // --- Display Selections on Driver Station ---
+        if (isPlaylistFinalized) {
+            telemetry.addLine("*** PLAYLIST FINALIZED (Press X to Unlock) ***");
+        } else {
+            telemetry.addLine("A: add command to playlist, B: remove last command, X: finalize playlist");
+            telemetry.addData("--> Selected Command", AutoCommand.values()[commandMenuIndex]);
+        }
+        telemetry.addLine("\nCurrent Playlist:");
+        for (int i = 0; i < autoCommands.size(); i++) {
+            telemetry.addLine((i + 1) + ". " + autoCommands.get(i));
+        }
+        telemetry.update();
     }
 }

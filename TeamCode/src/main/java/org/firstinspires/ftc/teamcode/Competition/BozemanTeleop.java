@@ -334,13 +334,19 @@ public class BozemanTeleop extends OpMode {
      */
     private void handleAutoPark() {
         telemetry.addLine("--- AUTO-PARKING ---");
-        // When the follower is no longer busy, return to manual control.
-        if (!follower.isBusy()) {
-            currentState = TeleOpState.MANUAL;
-        }
+
         // Allow the driver to interrupt the path by moving the sticks.
+        // This check is first to ensure it's responsive.
         if (Math.abs(gamepad1.left_stick_y) > 0.1 || Math.abs(gamepad1.left_stick_x) > 0.1 || Math.abs(gamepad1.right_stick_x) > 0.1) {
             follower.breakFollowing();
+            follower.startTeleOpDrive(); // IMPORTANT: Re-engage teleop mode
+            currentState = TeleOpState.MANUAL;
+            return; // Exit immediately
+        }
+
+        // When the follower is no longer busy, it means the path finished naturally.
+        if (!follower.isBusy()) {
+            follower.startTeleOpDrive(); // Re-engage teleop mode
             currentState = TeleOpState.MANUAL;
         }
     }
@@ -354,9 +360,10 @@ public class BozemanTeleop extends OpMode {
         telemetry.addData("Turret Calibrated", robot.turret.isCalibrated());
         telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
         telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
+        telemetry.addData("Action State", actionManager.getCurrentState());
         telemetry.addData("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
-        telemetry.addData("Flywheel Target Speed", "%.2f RPM", robot.launcher.getTargetRPM());
-        telemetry.addData("Flywheel Actual Speed", "%.2f L, %.2f R RPM", robot.launcher.getLeftFlywheelRPM(), robot.launcher.getRightFlywheelRPM());
+        telemetry.addData("Launcher Target Speed", "%.2f RPM", robot.launcher.getTargetRPM());
+        telemetry.addData("Launcher Actual Speed", "%.2f L, %.2f R RPM", robot.launcher.getLeftFlywheelRPM(), robot.launcher.getRightFlywheelRPM());
         telemetry.addData("Limelight ball detected color", robot.limelightBallDetector.getDetectedColor().toString());
         telemetry.addData("Diverter ", robot.diverter.isStuck()? "STUCK" : "NOT STUCK");
         Pose currentPose = follower.getPose();

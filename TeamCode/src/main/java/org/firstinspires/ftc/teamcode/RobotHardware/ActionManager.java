@@ -177,4 +177,8 @@ public class ActionManager {
         // Return true if the state machine is in any state other than IDLE.
         return currentState != ActionState.IDLE;
     }
+
+    public ActionState getCurrentState() {
+        return currentState;
+    }
 }
