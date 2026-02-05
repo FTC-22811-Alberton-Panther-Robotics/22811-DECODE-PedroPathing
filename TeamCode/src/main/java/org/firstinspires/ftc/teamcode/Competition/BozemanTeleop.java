@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.RobotHardware.ActionManager;
 import org.firstinspires.ftc.teamcode.RobotHardware.DiverterHardware;
+import org.firstinspires.ftc.teamcode.RobotHardware.DriverAssist;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
@@ -107,6 +108,7 @@ public class BozemanTeleop extends OpMode {
     private CombinedLocalizer localizer;
     private Follower follower;
     public static Pose startingPose;
+    private DriverAssist driverAssist;
     private boolean automatedDrive;
     private Supplier<PathChain> pathChain;
     private GameState.Alliance alliance;
@@ -114,11 +116,8 @@ public class BozemanTeleop extends OpMode {
     private StartPosition startPosition = StartPosition.FRONT;
 
     // Drive Mode Logic
-    public enum DriveMode { ROBOT_CENTRIC, FIELD_CENTRIC, TARGET_LOCK}
-    private DriveMode currentDriveMode = DriveMode.FIELD_CENTRIC;
     public enum TeleOpState {MANUAL, AUTO_PARK}
     private TeleOpState currentState = TeleOpState.MANUAL;
-    private static final double HEADING_KP = 0.8; // Proportional gain for Target Lock
 
     // State variables for edge detection and controls
     private boolean was_manually_moving_turret;
@@ -137,13 +136,17 @@ public class BozemanTeleop extends OpMode {
         follower = Constants.createFollower(hardwareMap, localizer);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
+        driverAssist = new DriverAssist(follower);
 
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
         actionManager = new ActionManager(robot);
 
-        // Default to Blue Alliance, but allow selection during init.
-        this.alliance = (GameState.alliance != GameState.Alliance.UNKNOWN) ? GameState.alliance : GameState.Alliance.BLUE;
+        // If alliance wasn't set by a previous OpMode, default to Blue.
+        // This can be changed in init_loop().
+        if (GameState.alliance == GameState.Alliance.UNKNOWN) {
+            GameState.alliance = GameState.Alliance.BLUE;
+        }
 
         telemetry.addLine("Bozeman TeleOp Initialized. Ready for match!");
         telemetry.addLine("INIT: D-Pad L/R for Alliance, Up/Down for Start Pos");
@@ -161,6 +164,7 @@ public class BozemanTeleop extends OpMode {
         GameState.alliance = this.alliance;
         telemetry.addData("Selected Alliance", alliance);
         telemetry.addData("Selected Start", startPosition);
+        telemetry.addLine("\nReady to START!");
         telemetry.update();
     }
 
@@ -210,23 +214,8 @@ public class BozemanTeleop extends OpMode {
     }
 
     private void handleControls() {
-        // This block now contains all the drive logic, calling the follower directly.
-        switch (currentDriveMode) {
-            case ROBOT_CENTRIC:
-                follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
-                break;
-            case FIELD_CENTRIC:
-                follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, false);
-                break;
-            case TARGET_LOCK:
-                Pose robotPose = follower.getPose();
-                if (robotPose != null) {
-                    double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
-                    double calculatedTurn = HEADING_KP * headingError;
-                    follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, calculatedTurn, false);
-                }
-                break;
-        }
+        // Pass joystick inputs to the DriverAssist module to calculate drive power
+        driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
         // Intake
         if (gamepad1.left_trigger > 0.1) {
@@ -249,7 +238,7 @@ public class BozemanTeleop extends OpMode {
 
         // Launching
         if (gamepad1.right_trigger > 0.1) {
-            actionManager.launchFromScoopTeleop();
+            actionManager.launch();
             if (stagedArtifact == StagedArtifact.GREEN) {
                 robot.diverter.decrementGreenArtifactCount();
             } else if (stagedArtifact == StagedArtifact.PURPLE) {
@@ -291,12 +280,19 @@ public class BozemanTeleop extends OpMode {
             auto_diverter_enabled = true;
         }
 
-        // Drive Mode
+        // Cycle through drive modes. No reliability check is needed here, giving the
+        // driver full control to use any mode they see fit.
         if (gamepad1.bWasPressed()) {
-            switch (currentDriveMode) {
-                case ROBOT_CENTRIC: currentDriveMode = DriveMode.FIELD_CENTRIC; break;
-                case FIELD_CENTRIC: currentDriveMode = DriveMode.TARGET_LOCK; break;
-                case TARGET_LOCK: currentDriveMode = DriveMode.ROBOT_CENTRIC; break;
+            switch (driverAssist.getMode()) {
+                case ROBOT_CENTRIC:
+                    driverAssist.setMode(DriverAssist.DriveMode.FIELD_CENTRIC);
+                    break;
+                case FIELD_CENTRIC:
+                    driverAssist.setMode(DriverAssist.DriveMode.FC_TARGET_LOCK);
+                    break;
+                case FC_TARGET_LOCK:
+                    driverAssist.setMode(DriverAssist.DriveMode.ROBOT_CENTRIC);
+                    break;
             }
         }
 
@@ -356,7 +352,7 @@ public class BozemanTeleop extends OpMode {
             telemetry.addLine("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
         }
         telemetry.addData("Alliance", alliance.toString());
-        telemetry.addData("Drive Mode", currentDriveMode.toString());
+        telemetry.addData("Drive Mode", driverAssist.getMode().toString());
         telemetry.addData("Turret Calibrated", robot.turret.isCalibrated());
         telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
         telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
