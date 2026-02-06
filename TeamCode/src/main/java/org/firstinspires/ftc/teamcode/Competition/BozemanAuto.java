@@ -110,10 +110,6 @@ public class BozemanAuto extends OpMode {
         actionManager = new ActionManager(robot);
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
-
-        telemetry.addLine("--- Playlist Autonomous Builder ---");
-        telemetry.addLine("X: Lock Playlist | A: Add | B: Remove | Y: Clear");
-        telemetry.update();
     }
 
     @Override
@@ -369,7 +365,7 @@ public class BozemanAuto extends OpMode {
     }
 
     private void playlistBuilder() {
-        telemetry.addData("Selected Alliance", GameState.alliance);
+        telemetry.addData("Selected Alliance", alliance);
         telemetry.addData("Selected Start", startPosition);
 
         // Allow the user to lock the playlist to prevent accidental changes
