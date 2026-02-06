@@ -36,12 +36,15 @@ public class DriverAssist {
     public enum DriveMode {
         ROBOT_CENTRIC,
         FIELD_CENTRIC,
-        TARGET_LOCK
+        FC_TARGET_LOCK,
+        RC_TARGET_LOCK
     }
     private DriveMode currentMode = DriveMode.ROBOT_CENTRIC;
 
-    // TODO: Tune this Kp value for responsive but stable target locking.
+    // Proportional gain for the Target Lock mode.
+    // Tune this for responsive but stable target locking.
     private static final double HEADING_KP = 0.3;
+    private static final double TURNING_MULTIPLIER = 0.5; // limit turning power for more control
 
     public DriverAssist(Follower follower, CombinedLocalizer localizer) {
         this.follower = follower;
@@ -61,16 +64,21 @@ public class DriverAssist {
      * the driving calculations based on the selected mode.
      */
     public void update(double joyY, double joyX, double joyTurn) {
-        //Pose robotPose = localizer.getPose();
+        Pose robotPose = follower.getPose();
+        double headingError = 0;
+        double calculatedTurn = 0;
+        joyTurn = squareInputWithSign(joyTurn) * TURNING_MULTIPLIER; // Limit turning power for more control
+        joyY = squareInputWithSign(joyY);
+        joyX = squareInputWithSign(joyX);
 
-//        // This is a comprehensive guard clause to prevent crashes on the first loop.
-//        // It checks for null objects, our reliability flag, the hardware's NaN flag,
-//        // and a manual check of the pose contents to prevent passing invalid data.
-//        if (robotPose == null || !localizer.isPoseReliable() || localizer.isNAN()
-//                || Double.isNaN(robotPose.getX()) || Double.isNaN(robotPose.getY()) || Double.isNaN(robotPose.getHeading())) {
-//            follower.setTeleOpDrive(0,0,0,true); // Send a zero power command to be safe
-//            return;
-//        }
+        // If localization is not stable, do not send drive commands.
+        if (robotPose == null) {
+            currentMode = DriveMode.ROBOT_CENTRIC;
+        } else {
+            headingError = getSignedAngleDifference(robotPose.getHeading(), calculateHeadingToGoal(robotPose));
+            calculatedTurn = HEADING_KP * headingError;
+            calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
+        }
 
         switch (currentMode) {
             case ROBOT_CENTRIC:
@@ -81,17 +89,38 @@ public class DriverAssist {
                 follower.setTeleOpDrive(joyY, joyX, joyTurn, false);
                 break;
 
-            case TARGET_LOCK:
-                //double headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
-                //double calculatedTurn = HEADING_KP * headingError;
-                //calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
+            case FC_TARGET_LOCK:
+                follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
+                break;
 
-                //follower.setTeleOpDrive(joyY, joyX, calculatedTurn, false);
-                follower.setTeleOpDrive(joyY, joyX, joyTurn, false);
+            case RC_TARGET_LOCK:
+                follower.setTeleOpDrive(joyY, joyX, calculatedTurn, true);
                 break;
         }
     }
-    
+
+    /**
+     * Calculates the smallest signed angle difference between a current and target angle.
+     * The result will be in the range [-PI, PI], which is crucial for proportional control.
+     * A positive result means a counter-clockwise turn is needed.
+     * A negative result means a clockwise turn is needed.
+     *
+     * @param currentAngle The current angle in radians.
+     * @param targetAngle The target angle in radians.
+     * @return The signed angle difference in radians.
+     */
+    private double getSignedAngleDifference(double currentAngle, double targetAngle) {
+        double diff = targetAngle - currentAngle;
+        // Normalize the difference to be within the range [-PI, PI]
+        while (diff > Math.PI) {
+            diff -= 2 * Math.PI;
+        }
+        while (diff < -Math.PI) {
+            diff += 2 * Math.PI;
+        }
+        return diff;
+    }
+
     /**
      * Calculates the absolute field heading (in radians) from the robot's current position to the goal.
      */
@@ -100,10 +129,24 @@ public class DriverAssist {
         Pose targetGoal = (GameState.alliance == GameState.Alliance.BLUE)
                 ? FieldPosePresets.BLUE_GOAL_TARGET
                 : FieldPosePresets.RED_GOAL_TARGET;
-        
+
         return Math.atan2(
                 targetGoal.getY() - robotPose.getY(),
                 targetGoal.getX() - robotPose.getX()
         );
     }
+
+    /**
+     * Takes gamepad joystick input which will always be in the [-1, 1] range, and squares it, while
+     * keeping the sign. Squaring a decimal number (between 0 and 1, positive or negative) makes it
+     * smaller. In this way we can make small joystick adjustments result in even smaller robot
+     * movements to give fine control when attempting to move precisely while keeping fast movements
+     * fast.
+     * @param input
+     * @return
+     */
+    public double squareInputWithSign(double input) {
+        return Math.copySign(input * input, input);
+    }
+
 }

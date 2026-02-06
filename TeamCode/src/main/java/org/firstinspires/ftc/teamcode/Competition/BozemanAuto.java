@@ -92,20 +92,22 @@ public class BozemanAuto extends OpMode {
     private final List<Character> SPIKE_MIDDLE_COLORS = Arrays.asList('P', 'G', 'P');
     private final List<Character> SPIKE_BACK_COLORS = Arrays.asList('P', 'P', 'G');
     private final double INTAKE_OFFSET_DISTANCE = 6.0;
+    private final double INTAKE_PAUSE_SECONDS = 0.5; // TODO: Tune this pause time
 
     @Override
     public void init() {
+        // --- HARDWARE FIX: Single Source of Truth ---
+        // 1. Create the hardware container. This is the SINGLE SOURCE OF TRUTH.
+        // It creates the localizer, the ball detector, and all other hardware, resolving hardware conflicts.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
-        actionManager = new ActionManager(robot);
 
         localizer = new CombinedLocalizer(hardwareMap, telemetry);
         follower = Constants.createFollower(hardwareMap, localizer);
 
+        // 4. Initialize all other necessary modules.
+        actionManager = new ActionManager(robot);
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
-
-        telemetry.addLine("--- Playlist Autonomous Builder ---");
-        telemetry.addLine("X: Lock Playlist | A: Add | B: Remove | Y: Clear");
         telemetry.update();
     }
 
@@ -113,7 +115,9 @@ public class BozemanAuto extends OpMode {
     public void init_loop() {
         if (!isStartPoseSelected) {
             selectStartingLocation();
-        }else playlistBuilder();
+        } else {
+            playlistBuilder();
+        }
     }
 
     @Override
@@ -136,7 +140,15 @@ public class BozemanAuto extends OpMode {
 
     @Override
     public void loop() {
+        // --- CRITICAL UPDATE ORDER ---
+        // 1. Update the localizer first to get the latest pose from all sensors (odometry and vision).
+        localizer.update();
+        // 2. Update the follower with the new pose to calculate motor powers for driving.
         follower.update();
+        // 3. Update the Limelight ball detector state machine to cycle through pipelines.
+        robot.limelightBallDetector.update();
+
+        // Update all other subsystems on every loop.
         actionManager.update();
         robot.turret.update(alliance);
         robot.launcher.update(alliance);
@@ -146,6 +158,7 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
+        telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
         telemetry.update();
     }
 
@@ -201,8 +214,8 @@ public class BozemanAuto extends OpMode {
                 break;
 
             // --- Gate Hitting Sub-States ---
-            case 200: if (!follower.isBusy()) { follower.followPath(new Path(new BezierLine(follower.getPose(), gateTriggerPose))); setPathState(201); } break;
-            case 201: if (!follower.isBusy()) { follower.followPath(new Path(new BezierLine(follower.getPose(), gateApproachPose))); setPathState(202); } break;
+            case 200: if (!follower.isBusy()) { followerPathBuilder(gateTriggerPose); setPathState(201); } break;
+            case 201: if (!follower.isBusy()) { followerPathBuilder(gateApproachPose); setPathState(202); } break;
             case 202: if (!follower.isBusy()) advanceToNextCommand(); break;
 
             // --- Intake Cycle Sub-States ---
@@ -225,13 +238,18 @@ public class BozemanAuto extends OpMode {
                 break;
             case 303: // Wait for the intake action to complete.
                 if (!actionManager.isBusy()) {
+                    setPathState(304); // Move to the new pause state
+                }
+                break;
+            case 304: // Pause to ensure artifact is fully captured.
+                if (timer.seconds() > INTAKE_PAUSE_SECONDS) {
                     intakeCycleArtifactCount++;
                     if (intakeCycleArtifactCount >= 3) { // If we have all 3 artifacts...
                         advanceToNextCommand();      // ...then this command is done.
                     } else { // Otherwise, move to the next artifact in the stack.
                         double offset = (alliance == GameState.Alliance.BLUE) ? -INTAKE_OFFSET_DISTANCE : INTAKE_OFFSET_DISTANCE;
                         Pose nextArtifactPose = follower.getPose().plus(new Pose(offset, 0, 0));
-                        follower.followPath(new Path(new BezierLine(follower.getPose(), nextArtifactPose)));
+                        followerPathBuilder(nextArtifactPose);
                         setPathState(301); // Go back and set diverter for the next artifact.
                     }
                 }
@@ -247,10 +265,19 @@ public class BozemanAuto extends OpMode {
             case 401: // This is a loop that fires all three artifacts.
                 if (!actionManager.isBusy()) { // Wait for the previous shot to complete.
                     if (scoreCycleArtifactCount < 3) {
-                        actionManager.launchFromScoopAutonomous();
+                        // Determine which artifact color to score next based on spike context
+                        List<Character> colorOrder = (currentSpikeContext == SpikeLocation.FRONT) ? SPIKE_FRONT_COLORS :
+                                (currentSpikeContext == SpikeLocation.MIDDLE) ? SPIKE_MIDDLE_COLORS :
+                                        SPIKE_BACK_COLORS;
+                        char artifactToScore = colorOrder.get(scoreCycleArtifactCount);
+
+                        // Call the new, complete scoring sequence in ActionManager
+                        actionManager.autonomousScore(artifactToScore);
+
                         scoreCycleArtifactCount++;
                     } else {
-                        advanceToNextCommand(); // All three have been fired, move on.
+                        // All three have been fired, move on.
+                        advanceToNextCommand();
                     }
                 }
                 break;
@@ -315,15 +342,14 @@ public class BozemanAuto extends OpMode {
     }
 
     private void selectStartingLocation(){
-        // Allow alliance and starting position selection before the match begins.
-        if (gamepad1.dpad_left || gamepad2.dpad_left) {
-            GameState.alliance = GameState.Alliance.BLUE;
+        if (gamepad1.dpadLeftWasPressed() || gamepad2.dpadLeftWasPressed()) {
+            alliance = GameState.Alliance.BLUE;
         }
-        if (gamepad1.dpad_right || gamepad2.dpad_right) {
-            GameState.alliance = GameState.Alliance.RED;
+        if (gamepad1.dpadRightWasPressed() || gamepad2.dpadRightWasPressed()) {
+            alliance = GameState.Alliance.RED;
         }
-        if (gamepad1.dpad_up || gamepad2.dpad_up) startPosition = StartPosition.BACK;
-        if (gamepad1.dpad_down || gamepad2.dpad_down) startPosition = StartPosition.FRONT;
+        if (gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) startPosition = StartPosition.BACK;
+        if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) startPosition = StartPosition.FRONT;
 
         if (gamepad1.aWasPressed() || gamepad2.aWasPressed()){
             isStartPoseSelected = true;
@@ -332,14 +358,16 @@ public class BozemanAuto extends OpMode {
         // Provide continuous feedback on the driver station
         telemetry.addLine("Blue/Red Alliance: dPad left/right");
         telemetry.addLine("Starting Position Back/Front: dPad up/down");
-        telemetry.addData("Selected Alliance", GameState.alliance);
+        telemetry.addData("Selected Alliance", alliance);
         telemetry.addData("Selected Start", startPosition);
-        telemetry.addData("Action State", actionManager.getCurrentState());
-        telemetry.addLine("\nPress 'A/X to confirm and start building playlist");
+        telemetry.addLine("\nPress 'A' to confirm and start building playlist");
         telemetry.update();
     }
 
     private void playlistBuilder() {
+        telemetry.addData("Selected Alliance", alliance);
+        telemetry.addData("Selected Start", startPosition);
+
         // Allow the user to lock the playlist to prevent accidental changes
         if (gamepad1.xWasPressed()) {
             isPlaylistFinalized = !isPlaylistFinalized;
@@ -347,13 +375,6 @@ public class BozemanAuto extends OpMode {
 
         // Only allow modifications if the playlist is not finalized
         if (!isPlaylistFinalized) {
-            // --- Configure Alliance and Start Position ---
-            if (gamepad1.dpadUpWasPressed()) alliance = GameState.Alliance.BLUE;
-            if (gamepad1.dpadDownWasPressed()) alliance = GameState.Alliance.RED;
-
-            if (gamepad1.leftBumperWasPressed()) startPosition = StartPosition.FRONT;
-            if (gamepad1.rightBumperWasPressed()) startPosition = StartPosition.BACK;
-
             // --- Build the Playlist ---
             AutoCommand[] allCommands = AutoCommand.values();
             // Scroll through commands with D-Pad
@@ -371,9 +392,10 @@ public class BozemanAuto extends OpMode {
         }
         // --- Display Selections on Driver Station ---
         if (isPlaylistFinalized) {
+
             telemetry.addLine("*** PLAYLIST FINALIZED (Press X to Unlock) ***");
         } else {
-            telemetry.addLine("A: add command to playlist, B: remove last command, X: finalize playlist");
+            telemetry.addLine("\nA: add command to playlist, B: remove last command, X: finalize playlist");
             telemetry.addData("--> Selected Command", AutoCommand.values()[commandMenuIndex]);
         }
         telemetry.addLine("\nCurrent Playlist:");

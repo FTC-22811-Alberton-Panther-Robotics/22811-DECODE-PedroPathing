@@ -19,20 +19,31 @@ public class ActionManager {
     private final ElapsedTime timer = new ElapsedTime();
 
     // --- Tuning Constants ---
-    private static final double LAUNCHER_SPINUP_TIMEOUT_SECONDS = 1.5; // Max time to wait for the launcher to get to speed.
-    private static final double SCOOP_CYCLE_SECONDS = 0.67; // How long the scoop stays up to fire.
+    private static final double LAUNCHER_SPINUP_TIMEOUT_SECONDS = 1.5;
+    private static final double SCOOP_CYCLE_SECONDS = 0.67;
+    // TODO: Tune these new constants for the autonomous scoring sequence
+    private static final double AUTO_SCORE_INTAKE_TIME = 0.25; // Time to run intake to seat artifact
+    private static final double AUTO_SCORE_TRANSFER_TIME = 1.2;  // Time to run the transfer kicker
 
     public enum ActionState {
         IDLE,
         INTAKING,
         TRANSFER_GREEN_ARTIFACT_TO_SCOOP,
         TRANSFER_PURPLE_ARTIFACT_TO_SCOOP,
-        AUTO_LAUNCHER_SPINUP,       // Autonomous: Spin up launcher and wait for it to be ready.
-        AUTO_SCOOP_CYCLE,           // Autonomous: Fire by moving the scoop.
-        TELEOP_SCOOP_CYCLE,         // TeleOp: Manually fire the scoop (assumes launcher is already on).
-        WAITING_FOR_AUTO_ACTION
+        // Unified Launch Sequence
+        LAUNCHER_SPINUP,
+        SCOOP_CYCLE,
+        WAITING_FOR_AUTO_ACTION,
+
+        // New states for the complete autonomous scoring sequence
+        AUTO_SCORE_INTAKE,
+        AUTO_SCORE_TRANSFER,
+        AUTO_SCORE_LAUNCH_SPINUP,
+        AUTO_SCORE_SCOOP_CYCLE
     }
     private ActionState currentState = ActionState.IDLE;
+    private char autoScoreArtifactColor;
+
 
     public ActionManager(RobotHardwareContainer robot) {
         this.robot = robot;
@@ -41,7 +52,7 @@ public class ActionManager {
     public void update() {
         switch (currentState) {
             case IDLE:
-            case INTAKING: // Manually started/stopped
+            case INTAKING:
                 break;
 
             case WAITING_FOR_AUTO_ACTION:
@@ -66,42 +77,89 @@ public class ActionManager {
                 }
                 break;
 
-            // --- Autonomous Launch Sequence ---
-            case AUTO_LAUNCHER_SPINUP:
-                // In this state, we check if the launcher is at its target speed.
-                if (robot.launcher.isAtTargetSpeed()) {
-                    // It's ready! Move to the next state to fire.
-                    currentState = ActionState.AUTO_SCOOP_CYCLE;
+            // --- Autonomous Scoring Sequence ---
+            case AUTO_SCORE_INTAKE:
+                // Step 1: Run intake briefly to seat the artifact
+                if (timer.seconds() > AUTO_SCORE_INTAKE_TIME) {
+                    robot.intake.stop();
+                    // Move to Step 2: Run the correct transfer kicker
+                    currentState = ActionState.AUTO_SCORE_TRANSFER;
+                    if (autoScoreArtifactColor == 'P') {
+                        robot.transfer.runLeft();
+                    } else {
+                        robot.transfer.runRight();
+                    }
+                    timer.reset();
+                }
+                break;
+
+            case AUTO_SCORE_TRANSFER:
+                // Step 2: Wait for the transfer to complete
+                if (timer.seconds() > AUTO_SCORE_TRANSFER_TIME) {
+                    if (autoScoreArtifactColor == 'P') {
+                        robot.transfer.returnLeft();
+                    } else {
+                        robot.transfer.returnRight();
+                    }
+                    // Move to Step 3: Launch the artifact
+                    currentState = ActionState.AUTO_SCORE_LAUNCH_SPINUP;
+                    if (!robot.launcher.isLauncherOn()) {
+                        robot.launcher.toggleLauncher();
+                    }
+                    timer.reset();
+                }
+                break;
+
+            case AUTO_SCORE_LAUNCH_SPINUP:
+                 // Step 3a: Wait for the launcher to get to speed
+                if (robot.launcher.isAtTargetSpeed() || timer.seconds() > LAUNCHER_SPINUP_TIMEOUT_SECONDS) {
+                    currentState = ActionState.AUTO_SCORE_SCOOP_CYCLE;
                     robot.scoop.up();
                     timer.reset();
-                } else if (timer.seconds() > LAUNCHER_SPINUP_TIMEOUT_SECONDS) {
-                    // It took too long to spin up. Abort the launch and stop the launcher to save battery.
-                    stopAll();
                 }
                 break;
 
-            case AUTO_SCOOP_CYCLE:
-                // The scoop is up. We wait for the cycle time to complete.
+            case AUTO_SCORE_SCOOP_CYCLE:
+                // Step 3b: Wait for the scoop cycle to finish
                 if (timer.seconds() > SCOOP_CYCLE_SECONDS) {
                     robot.scoop.down();
-                    // Auto sequence is over, everything should stop.
-                    stopAll();
+                    currentState = ActionState.IDLE; // Sequence is complete
                 }
                 break;
 
-            // --- TeleOp Manual Firing ---
-            case TELEOP_SCOOP_CYCLE:
-                // The scoop is up. We wait for the cycle time to complete.
+            // This is the old, simpler launch sequence. It can still be used if needed.
+            case LAUNCHER_SPINUP:
+                // Wait for the launcher to be at speed, or for the timeout to expire.
+                if (robot.launcher.isAtTargetSpeed() || timer.seconds() > LAUNCHER_SPINUP_TIMEOUT_SECONDS) {
+                    currentState = ActionState.SCOOP_CYCLE;
+                    robot.scoop.up();
+                    timer.reset();
+                }
+                break;
+            case SCOOP_CYCLE:
+                // Wait for the scoop to be up for the specified duration.
                 if (timer.seconds() > SCOOP_CYCLE_SECONDS) {
                     robot.scoop.down();
-                    // Return to IDLE, leaving the launcher on for the next shot.
-                    currentState = ActionState.IDLE;
+                    currentState = ActionState.IDLE; // Correctly finish the action
                 }
                 break;
         }
     }
 
-    // ----- PUBLIC METHODS FOR TELEOP AND AUTO -----
+    // ----- PUBLIC METHODS -----
+
+    /**
+     * Initiates the complete autonomous scoring sequence: seats, transfers, and launches.
+     * @param artifactColor The color of the artifact ('P' or 'G') to determine which transfer to run.
+     */
+    public void autonomousScore(char artifactColor) {
+        if (isBusy()) return;
+        this.autoScoreArtifactColor = artifactColor;
+        // Start Step 1: Run the intake
+        currentState = ActionState.AUTO_SCORE_INTAKE;
+        robot.intake.run();
+        timer.reset();
+    }
 
     public void startTransferGreenArtifact() {
         if (isBusy()) return;
@@ -118,42 +176,31 @@ public class ActionManager {
     }
 
     /**
-     * Initiates the fully autonomous launch sequence.
-     * This will start the launcher, wait for it to reach speed, and then fire.
+     * Initiates the unified launch sequence. Can be called from Auto or TeleOp.
+     * It will turn on the launcher if it's off, wait for it to reach speed, then fire.
      */
-    public void launchFromScoopAutonomous() {
-        // Do not start a new launch if another sequence is running.
+    public void launch() {
         if (isBusy()) return;
 
-        // Start the flywheel motor.
-        robot.launcher.start();
-
-        // Transition to the state that waits for the flywheel to get to speed.
-        currentState = ActionState.AUTO_LAUNCHER_SPINUP;
-
-        // Reset the timer to begin the spin-up timeout.
-        timer.reset();
-    }
-
-    /**
-     * Initiates the manual TeleOp launch sequence.
-     * This ONLY cycles the scoop. It assumes the driver has already turned the launcher on.
-     */
-    public void launchFromScoopTeleop() {
-        // Allow this to be spammed to re-try a shot, but don't interrupt other critical actions.
-        if (isBusy() && currentState != ActionState.TELEOP_SCOOP_CYCLE) return;
-
-        // This action does not start the launcher. That's the driver's job.
-        currentState = ActionState.TELEOP_SCOOP_CYCLE;
-        robot.scoop.up();
+        // If launcher isn't on, turn it on.
+        if (!robot.launcher.isLauncherOn()) {
+            robot.launcher.toggleLauncher();
+        }
+        currentState = ActionState.LAUNCHER_SPINUP;
         timer.reset();
     }
 
     public void startIntake() {
         if(isBusy()) return;
-        currentState = ActionState.WAITING_FOR_AUTO_ACTION;
+        currentState = ActionState.INTAKING;
         robot.intake.run();
-        timer.reset();
+    }
+
+    public void stopIntake(){
+        if(currentState == ActionState.INTAKING){
+            robot.intake.stop();
+            currentState = ActionState.IDLE;
+        }
     }
 
     /**
