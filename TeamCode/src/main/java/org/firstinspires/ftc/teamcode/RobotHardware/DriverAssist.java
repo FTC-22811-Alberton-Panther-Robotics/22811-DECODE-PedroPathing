@@ -25,6 +25,7 @@ public class DriverAssist {
     // Proportional gain for the Target Lock mode.
     // Tune this for responsive but stable target locking.
     private static final double HEADING_KP = 0.3;
+    private static final double TURNING_MULTIPLIER = 0.5; // limit turning power for more control
 
     public DriverAssist(Follower follower) {
         this.follower = follower;
@@ -46,12 +47,15 @@ public class DriverAssist {
         Pose robotPose = follower.getPose();
         double headingError = 0;
         double calculatedTurn = 0;
+        joyTurn = squareInputWithSign(joyTurn) * TURNING_MULTIPLIER; // Limit turning power for more control
+        joyY = squareInputWithSign(joyY);
+        joyX = squareInputWithSign(joyX);
 
         // If localization is not stable, do not send drive commands.
         if (robotPose == null) {
             currentMode = DriveMode.ROBOT_CENTRIC;
         } else {
-            headingError = MathFunctions.getSmallestAngleDifference(calculateHeadingToGoal(robotPose), robotPose.getHeading());
+            headingError = getSignedAngleDifference(robotPose.getHeading(), calculateHeadingToGoal(robotPose));
             calculatedTurn = HEADING_KP * headingError;
             calculatedTurn = Math.max(-1.0, Math.min(1.0, calculatedTurn));
         }
@@ -76,6 +80,28 @@ public class DriverAssist {
     }
 
     /**
+     * Calculates the smallest signed angle difference between a current and target angle.
+     * The result will be in the range [-PI, PI], which is crucial for proportional control.
+     * A positive result means a counter-clockwise turn is needed.
+     * A negative result means a clockwise turn is needed.
+     *
+     * @param currentAngle The current angle in radians.
+     * @param targetAngle The target angle in radians.
+     * @return The signed angle difference in radians.
+     */
+    private double getSignedAngleDifference(double currentAngle, double targetAngle) {
+        double diff = targetAngle - currentAngle;
+        // Normalize the difference to be within the range [-PI, PI]
+        while (diff > Math.PI) {
+            diff -= 2 * Math.PI;
+        }
+        while (diff < -Math.PI) {
+            diff += 2 * Math.PI;
+        }
+        return diff;
+    }
+
+    /**
      * Calculates the absolute field heading (in radians) from the robot's current position to the goal.
      */
     public double calculateHeadingToGoal(Pose robotPose)
@@ -89,4 +115,18 @@ public class DriverAssist {
                 targetGoal.getX() - robotPose.getX()
         );
     }
+
+    /**
+     * Takes gamepad joystick input which will always be in the [-1, 1] range, and squares it, while
+     * keeping the sign. Squaring a decimal number (between 0 and 1, positive or negative) makes it
+     * smaller. In this way we can make small joystick adjustments result in even smaller robot
+     * movements to give fine control when attempting to move precisely while keeping fast movements
+     * fast.
+     * @param input
+     * @return
+     */
+    public double squareInputWithSign(double input) {
+        return Math.copySign(input * input, input);
+    }
+
 }

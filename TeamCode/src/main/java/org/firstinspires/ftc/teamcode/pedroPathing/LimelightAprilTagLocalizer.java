@@ -6,22 +6,17 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.math.Vector;
 import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Manages all interactions with the Limelight camera for AprilTag-based localization.
- * This class implements the Localizer interface but is intended to be used as a component
- * within the CombinedLocalizer, providing pose data along with its latency.
+ * This class now accepts a pre-initialized Limelight3A object to prevent hardware conflicts.
  */
 public class LimelightAprilTagLocalizer implements Localizer {
 
@@ -39,19 +34,20 @@ public class LimelightAprilTagLocalizer implements Localizer {
         }
     }
 
-    public LimelightAprilTagLocalizer(HardwareMap hardwareMap, LimelightConstants constants, Telemetry telemetry) {
+    // Constructor now accepts a Limelight3A object.
+    public LimelightAprilTagLocalizer(Limelight3A limelight, LimelightConstants constants, Telemetry telemetry) {
+        this.limelight = limelight;
         this.constants = constants;
         this.telemetry = telemetry;
-        try {
-            limelight = hardwareMap.get(Limelight3A.class, LimelightConstants.hardwareMapName);
-            limelight.pipelineSwitch(0);
+
+        if (this.limelight != null) {
+            this.limelight.pipelineSwitch(0); // Ensure we start on the AprilTag pipeline.
             if (telemetry != null) telemetry.addLine("Limelight AprilTag Localizer Initialized Successfully");
-        } catch (Exception e) {
-            limelight = null;
+        } else {
             if (telemetry != null) telemetry.addLine("!!! LIMELIGHT NOT FOUND - CHECK CONFIGURATION !!!");
         }
     }
-    
+
     public Optional<LimelightPoseData> getLatestPoseWithLatency() {
         if (limelight == null) return Optional.empty();
 
@@ -85,11 +81,10 @@ public class LimelightAprilTagLocalizer implements Localizer {
 
     @Override
     public Pose getPose() {
-        // This method is required by the interface, but for fusion, we need the latency,
-        // so CombinedLocalizer will call getLatestPoseWithLatency() instead.
         return (lastPoseData != null) ? lastPoseData.pose : null;
     }
 
+    // --- Unused Localizer Methods ---
     @Override public void setPose(Pose setPose) {} 
     @Override public boolean isNAN() { return lastPoseData == null; } 
     @Override public Pose getVelocity() { return new Pose(); } 

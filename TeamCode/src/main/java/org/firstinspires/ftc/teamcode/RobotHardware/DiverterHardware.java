@@ -50,6 +50,12 @@ public class DiverterHardware {
     private static final double VOLTAGE_AT_GREEN_POS = 0.5;
     private static final double VOLTAGE_AT_PURPLE_POS = 2.5;
 
+    // Allowable voltage difference between commanded and actual position before the servo is
+    // considered stuck
+    final double STUCK_TOLERANCE = 0.20;
+
+    // --- Servo Positions ---
+
     public static final double GREEN_POSITION = 0.0;
     public static final double PURPLE_POSITION = 1.0;
     public static final double NEUTRAL_POSITION = 0.5;
@@ -113,7 +119,6 @@ public class DiverterHardware {
     }
 
     public boolean isStuck() {
-        final double STUCK_TOLERANCE = 0.10;
         return Math.abs(getActualPosition() - getCommandedPositionAsDouble()) > STUCK_TOLERANCE;
     }
 

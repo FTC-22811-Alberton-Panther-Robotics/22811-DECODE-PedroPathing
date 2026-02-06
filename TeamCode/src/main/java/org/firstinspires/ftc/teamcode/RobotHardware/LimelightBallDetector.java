@@ -23,6 +23,7 @@ import java.util.Optional;
  *    - Pipeline 1: Must be a "Detector" pipeline tuned to find GREEN Artifacts.
  *    - Pipeline 2: Must be a "Detector" pipeline tuned to find PURPLE Artifacts.
  * ---------------------------------------------------------------------------------
+ * This class now accepts a pre-initialized Limelight3A object to prevent hardware conflicts.
  */
 public class LimelightBallDetector {
 
@@ -40,17 +41,13 @@ public class LimelightBallDetector {
     public enum DetectedBall { GREEN, PURPLE, NONE }
     private DetectedBall detectedBall = DetectedBall.NONE;
 
-    public void init(HardwareMap hardwareMap, Telemetry telemetry) {
-        try {
-            limelight = hardwareMap.get(Limelight3A.class, "limelight");
-            if (telemetry != null) {
-                telemetry.addLine("Limelight Artifact Detector Initialized Successfully");
-            }
-        } catch (Exception e) {
-            limelight = null;
-            if (telemetry != null) {
-                telemetry.addLine("!!! LIMELIGHT NOT FOUND - CHECK CONFIGURATION !!!");
-            }
+    // init() now accepts a Limelight3A object instead of creating a new one.
+    public void init(Limelight3A limelight, Telemetry telemetry) {
+        this.limelight = limelight;
+        if (this.limelight != null) {
+            if (telemetry != null) telemetry.addLine("Limelight Artifact Detector Initialized Successfully");
+        } else {
+            if (telemetry != null) telemetry.addLine("!!! LIMELIGHT NOT FOUND - CHECK CONFIGURATION !!!");
         }
     }
 

@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.Competition;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.localization.Localizer;
 import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -13,7 +14,6 @@ import org.firstinspires.ftc.teamcode.RobotHardware.DiverterHardware;
 import org.firstinspires.ftc.teamcode.RobotHardware.FieldPosePresets;
 import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
-import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import java.util.ArrayList;
@@ -59,7 +59,6 @@ public class BozemanAuto extends OpMode {
         HIT_GATE,
         PARK
     }
-
     private enum SpikeLocation { NONE, FRONT, MIDDLE, BACK }
 
     private GameState.Alliance alliance = GameState.Alliance.BLUE;
@@ -73,7 +72,7 @@ public class BozemanAuto extends OpMode {
     private boolean isPlaylistFinalized = false;
 
     // ========== OPMODE CORE MEMBERS ========== //
-    private CombinedLocalizer localizer;
+    private Localizer localizer;
     private Follower follower;
     private ElapsedTime timer = new ElapsedTime();
     private RobotHardwareContainer robot;
@@ -96,12 +95,19 @@ public class BozemanAuto extends OpMode {
 
     @Override
     public void init() {
+        // --- HARDWARE FIX: Single Source of Truth ---
+        // 1. Create the hardware container. This is the SINGLE SOURCE OF TRUTH.
+        // It creates the localizer, the ball detector, and all other hardware, resolving hardware conflicts.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
-        actionManager = new ActionManager(robot);
 
-        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        // 2. Get the authoritative localizer from the container. DO NOT create a new one here.
+        localizer = robot.localizer;
+
+        // 3. Create the follower using the correct, single instance of the localizer.
         follower = Constants.createFollower(hardwareMap, localizer);
 
+        // 4. Initialize all other necessary modules.
+        actionManager = new ActionManager(robot);
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
 
@@ -114,7 +120,9 @@ public class BozemanAuto extends OpMode {
     public void init_loop() {
         if (!isStartPoseSelected) {
             selectStartingLocation();
-        }else playlistBuilder();
+        } else {
+            playlistBuilder();
+        }
     }
 
     @Override
@@ -137,7 +145,15 @@ public class BozemanAuto extends OpMode {
 
     @Override
     public void loop() {
+        // --- CRITICAL UPDATE ORDER ---
+        // 1. Update the localizer first to get the latest pose from all sensors (odometry and vision).
+        localizer.update();
+        // 2. Update the follower with the new pose to calculate motor powers for driving.
         follower.update();
+        // 3. Update the Limelight ball detector state machine to cycle through pipelines.
+        robot.limelightBallDetector.update();
+
+        // Update all other subsystems on every loop.
         actionManager.update();
         robot.turret.update(alliance);
         robot.launcher.update(alliance);
@@ -147,6 +163,7 @@ public class BozemanAuto extends OpMode {
         telemetry.addData("Executing Step", (currentCommandIndex + 1) + " of " + autoCommands.size());
         telemetry.addData("Command", (currentCommandIndex < autoCommands.size()) ? autoCommands.get(currentCommandIndex) : "DONE");
         telemetry.addData("Path State", pathState);
+        telemetry.addData("Pose", "X: %.2f, Y: %.2f, H: %.1f", follower.getPose().getX(), follower.getPose().getY(), Math.toDegrees(follower.getPose().getHeading()));
         telemetry.update();
     }
 
@@ -265,8 +282,6 @@ public class BozemanAuto extends OpMode {
                         scoreCycleArtifactCount++;
                     } else {
                         // All three have been fired, move on.
-                        // Optionally turn off the launcher to save power before the next command.
-                        robot.launcher.stop();
                         advanceToNextCommand();
                     }
                 }

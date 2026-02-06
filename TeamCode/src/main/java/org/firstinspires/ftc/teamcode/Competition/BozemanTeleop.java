@@ -3,9 +3,9 @@ package org.firstinspires.ftc.teamcode.Competition;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.localization.Localizer;
 import com.pedropathing.math.MathFunctions;
 import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -17,8 +17,6 @@ import org.firstinspires.ftc.teamcode.RobotHardware.GameState;
 import org.firstinspires.ftc.teamcode.RobotHardware.RobotHardwareContainer;
 import org.firstinspires.ftc.teamcode.pedroPathing.CombinedLocalizer;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
-import java.util.function.Supplier;
 
 /**
  * ---------------------------------------------------------------------------------
@@ -103,14 +101,13 @@ import java.util.function.Supplier;
  */
 @TeleOp(name = "BozemanTeleop", group = "01 Bozeman")
 public class BozemanTeleop extends OpMode {
+
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
-    private CombinedLocalizer localizer;
+    private Localizer localizer;
     private Follower follower;
     public static Pose startingPose;
     private DriverAssist driverAssist;
-    private boolean automatedDrive;
-    private Supplier<PathChain> pathChain;
     private GameState.Alliance alliance;
     private enum StartPosition {FRONT, BACK};
     private StartPosition startPosition = StartPosition.FRONT;
@@ -128,22 +125,25 @@ public class BozemanTeleop extends OpMode {
 
     @Override
     public void init() {
-        // Create the hardware container
+        // --- HARDWARE FIX: Single Source of Truth ---
+        // 1. Create the hardware container. This is the SINGLE SOURCE OF TRUTH.
+        // It creates the localizer, the ball detector, and all other hardware, resolving hardware conflicts.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
 
-        // Create and get the single, authoritative instances of the Follower and Localizer
-        localizer = new CombinedLocalizer(hardwareMap, telemetry);
+        // 2. Get the authoritative localizer from the container. DO NOT create a new one here.
+        localizer = robot.localizer;
+
+        // 3. Create the follower and driver assist modules using the single, authoritative localizer.
         follower = Constants.createFollower(hardwareMap, localizer);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
-        follower.update();
         driverAssist = new DriverAssist(follower);
 
+        // 4. Initialize any other hardware modules that depend on the follower.
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
         actionManager = new ActionManager(robot);
 
         // If alliance wasn't set by a previous OpMode, default to Blue.
-        // This can be changed in init_loop().
         if (GameState.alliance == GameState.Alliance.UNKNOWN) {
             GameState.alliance = GameState.Alliance.BLUE;
         }
@@ -156,12 +156,12 @@ public class BozemanTeleop extends OpMode {
     @Override
     public void init_loop() {
         // Allow alliance selection during init
-        if (gamepad1.dpad_left) alliance = GameState.Alliance.BLUE;
-        if (gamepad1.dpad_right) alliance = GameState.Alliance.RED;
+        if (gamepad1.dpad_left) GameState.alliance = GameState.Alliance.BLUE;
+        if (gamepad1.dpad_right) GameState.alliance = GameState.Alliance.RED;
         if (gamepad1.dpad_up) startPosition = StartPosition.BACK;
         if (gamepad1.dpad_down) startPosition = StartPosition.FRONT;
 
-        GameState.alliance = this.alliance;
+        alliance = GameState.alliance; // Sync local variable
         telemetry.addData("Selected Alliance", alliance);
         telemetry.addData("Selected Start", startPosition);
         telemetry.addLine("\nReady to START!");
@@ -189,8 +189,15 @@ public class BozemanTeleop extends OpMode {
 
     @Override
     public void loop() {
-        // Update all subsystems on every loop.
+        // --- CRITICAL UPDATE ORDER ---
+        // 1. Update the localizer first to get the latest pose from all sensors (odometry and vision).
+        localizer.update();
+        // 2. Update the follower with the new pose to calculate motor powers for driving.
         follower.update();
+        // 3. Update the Limelight ball detector state machine to cycle through pipelines.
+        robot.limelightBallDetector.update();
+
+        // Update all other subsystems on every loop.
         actionManager.update();
         robot.turret.update(alliance);
         robot.launcher.update(alliance);
@@ -198,6 +205,7 @@ public class BozemanTeleop extends OpMode {
         if (auto_diverter_enabled) {
             robot.diverter.update();
         }
+
         // Main state machine for TeleOp
         switch (currentState) {
             case MANUAL:
@@ -215,7 +223,7 @@ public class BozemanTeleop extends OpMode {
 
     private void handleControls() {
         // Pass joystick inputs to the DriverAssist module to calculate drive power
-        driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        driverAssist.update(-gamepad1.left_stick_y, gamepad1.left_stick_x, -gamepad1.right_stick_x);
 
         // Intake
         if (gamepad1.left_trigger > 0.1) {
@@ -261,11 +269,6 @@ public class BozemanTeleop extends OpMode {
             if (gamepad1.yWasPressed()) robot.turret.toggleAutoAim();
         }
 
-        // Reset the heading to 90 degrees, make sure the robot is pointing toward the back of the field.
-        if (gamepad1.startWasPressed()) {
-            localizer.resetHeading();
-        }
-
         // Diverter Manual Override
         if (gamepad1.dpad_left) {
             auto_diverter_enabled = false;
@@ -280,8 +283,7 @@ public class BozemanTeleop extends OpMode {
             auto_diverter_enabled = true;
         }
 
-        // Cycle through drive modes. No reliability check is needed here, giving the
-        // driver full control to use any mode they see fit.
+        // Drive Mode
         if (gamepad1.bWasPressed()) {
             switch (driverAssist.getMode()) {
                 case ROBOT_CENTRIC:
@@ -306,8 +308,8 @@ public class BozemanTeleop extends OpMode {
             GameState.alliance = alliance;
         }
 
-        // Trigger the Auto-Park sequence with the 'Back' button, but only if localization pose is reliable.
-        if (gamepad1.backWasPressed() && localizer.isPoseReliable()) {
+        // Auto-Park
+        if (gamepad1.backWasPressed() && ((CombinedLocalizer) localizer).isPoseReliable()) {
             Pose parkPose = (GameState.alliance == GameState.Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
             Pose currentPose = follower.getPose();
             Path parkingPath = new Path(new BezierLine(currentPose, parkPose));
@@ -348,7 +350,7 @@ public class BozemanTeleop extends OpMode {
     }
 
     private void updateTelemetry() {
-        if (!localizer.isPoseReliable()) {
+        if (!((CombinedLocalizer) localizer).isPoseReliable()) {
             telemetry.addLine("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
         }
         telemetry.addData("Alliance", alliance.toString());
