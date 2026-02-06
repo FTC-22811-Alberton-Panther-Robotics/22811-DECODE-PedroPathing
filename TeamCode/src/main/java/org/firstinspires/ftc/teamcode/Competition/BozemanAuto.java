@@ -336,8 +336,9 @@ public class BozemanAuto extends OpMode {
     }
 
     /**
-     * A helper method to build the path from the robot's current position to the next target position.
-     * @param targetPose
+     * A helper method to build and start a path from the robot's current position to a target pose.
+     * This method now includes the crucial heading interpolation to ensure the robot turns correctly.
+     * @param targetPose The destination pose for the path.
      */
     private void followerPathBuilder(Pose targetPose){
         follower.followPath(follower.pathBuilder()
