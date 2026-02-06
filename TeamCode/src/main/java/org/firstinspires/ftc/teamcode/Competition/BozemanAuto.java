@@ -110,6 +110,10 @@ public class BozemanAuto extends OpMode {
         actionManager = new ActionManager(robot);
         robot.initTurret(follower, hardwareMap);
         robot.initLauncher(follower, hardwareMap);
+
+        telemetry.addLine("--- Playlist Autonomous Builder ---");
+        telemetry.addLine("X: Lock Playlist | A: Add | B: Remove | Y: Clear");
+        telemetry.update();
     }
 
     @Override
@@ -313,7 +317,7 @@ public class BozemanAuto extends OpMode {
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case SCORE_ALL_THREE_FAR:
-                followerPathBuilder(scoreFarPose); // Corrected this line to use scoreFarPose
+                followerPathBuilder(scoreFarPose);
                 setPathState(400); // Enter the scoring cycle state machine
                 break;
             case HIT_GATE:
@@ -332,8 +336,9 @@ public class BozemanAuto extends OpMode {
     }
 
     /**
-     * A helper method to build the path from the robot's current position to the next target position.
-     * @param targetPose
+     * A helper method to build and start a path from the robot's current position to a target pose.
+     * This method now includes the crucial heading interpolation to ensure the robot turns correctly.
+     * @param targetPose The destination pose for the path.
      */
     private void followerPathBuilder(Pose targetPose){
         follower.followPath(follower.pathBuilder()
@@ -342,17 +347,17 @@ public class BozemanAuto extends OpMode {
                 .build());
     }
 
+    /**
+     * Handles the first step of initialization, where the driver selects the alliance and starting position.
+     */
     private void selectStartingLocation(){
-        if (gamepad1.dpadLeftWasPressed() || gamepad2.dpadLeftWasPressed()) {
-            alliance = GameState.Alliance.BLUE;
-        }
-        if (gamepad1.dpadRightWasPressed() || gamepad2.dpadRightWasPressed()) {
-            alliance = GameState.Alliance.RED;
-        }
-        if (gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) startPosition = StartPosition.BACK;
-        if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) startPosition = StartPosition.FRONT;
+        if (gamepad1.dpad_left) alliance = GameState.Alliance.BLUE;
+        if (gamepad1.dpad_right) alliance = GameState.Alliance.RED;
+        if (gamepad1.dpad_up) startPosition = StartPosition.BACK;
+        if (gamepad1.dpad_down) startPosition = StartPosition.FRONT;
 
-        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()){
+        // Pressing 'A' confirms the selection and moves to the playlist builder.
+        if (gamepad1.a) {
             isStartPoseSelected = true;
         }
 
@@ -364,13 +369,18 @@ public class BozemanAuto extends OpMode {
         telemetry.update();
     }
 
+    /**
+     * Handles the second step of initialization, where the driver builds the playlist of autonomous commands.
+     */
     private void playlistBuilder() {
         telemetry.addData("Selected Alliance", alliance);
         telemetry.addData("Selected Start", startPosition);
 
         // Allow the user to lock the playlist to prevent accidental changes
-        if (gamepad1.xWasPressed()) {
-            isPlaylistFinalized = !isPlaylistFinalized;
+        if (gamepad1.x) {
+            isPlaylistFinalized = true;
+        } else if (gamepad1.back) { // Allow unlocking
+            isPlaylistFinalized = false;
         }
 
         // Only allow modifications if the playlist is not finalized
