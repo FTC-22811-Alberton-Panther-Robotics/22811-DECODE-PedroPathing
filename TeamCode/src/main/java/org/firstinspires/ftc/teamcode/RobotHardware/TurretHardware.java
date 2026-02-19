@@ -53,7 +53,7 @@ public class TurretHardware {
     private final int ACCEPTABLE_TOLERANCE_TICKS = (int) (TURRET_TICKS_PER_DEGREE * 1.0);
     private final double CALIBRATION_POWER = -0.4;
     private final int CALIBRATION_TIME_MS = 2000;
-    private final double MANUAL_MOVE_SPEED = 4.0;
+    private final double MANUAL_MOVE_SPEED = 15.0;
     private final double STALL_CURRENT_AMPS = 4.0; // TODO: Tune this critical safety value
     private final double STALL_COOLDOWN_SECONDS = 3.0;
 
@@ -106,6 +106,7 @@ public class TurretHardware {
                     turretMotor.setPower(1.0);
                     currentState = SystemState.RUNNING;
                     setModeToAuto(); // Default to auto-aim after calibrating
+                    updateAutoAim(alliance);
                 }
                 return; // Block other actions during calibration
 

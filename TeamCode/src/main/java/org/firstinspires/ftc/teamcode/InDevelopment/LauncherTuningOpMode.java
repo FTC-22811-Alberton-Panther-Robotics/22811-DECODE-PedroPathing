@@ -33,7 +33,7 @@ public class LauncherTuningOpMode extends OpMode {
     public void init() {
 
         localizer = new CombinedLocalizer(hardwareMap, telemetry);
-        follower = Constants.createFollower(hardwareMap, localizer);
+        follower = Constants.createFollower(hardwareMap);
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
         // We don't need a follower for this tuning OpMode
         actionManager = new ActionManager(robot) ;

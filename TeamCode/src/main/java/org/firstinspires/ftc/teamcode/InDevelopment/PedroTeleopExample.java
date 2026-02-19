@@ -30,8 +30,7 @@ public class PedroTeleopExample extends OpMode {
 
     @Override
     public void init() {
-        localizer = new CombinedLocalizer(hardwareMap, telemetry);
-        follower = Constants.createFollower(hardwareMap, localizer);
+        follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         follower.update();
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();

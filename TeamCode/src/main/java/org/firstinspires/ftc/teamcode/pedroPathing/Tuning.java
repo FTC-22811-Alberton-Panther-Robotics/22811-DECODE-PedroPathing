@@ -79,7 +79,7 @@ public class Tuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         localizer = new CombinedLocalizer(hardwareMap, telemetry);
-        follower = Constants.createFollower(hardwareMap, localizer);
+        follower = Constants.createFollower(hardwareMap);
         PanelsConfigurables.INSTANCE.refreshClass(this);
 
         follower.setStartingPose(new Pose());

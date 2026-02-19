@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.Competition;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.ftc.localization.constants.PinpointConstants;
+import com.pedropathing.ftc.localization.localizers.PinpointLocalizer;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.localization.Localizer;
@@ -104,7 +106,7 @@ public class BozemanTeleop extends OpMode {
 
     private RobotHardwareContainer robot;
     private ActionManager actionManager;
-    private Localizer localizer;
+    private PinpointLocalizer localizer; // The single, authoritative localizer instance
     private Follower follower;
     public static Pose startingPose;
     private DriverAssist driverAssist;
@@ -120,8 +122,7 @@ public class BozemanTeleop extends OpMode {
     private boolean was_manually_moving_turret;
     private enum StagedArtifact { NONE, GREEN, PURPLE }
     private StagedArtifact stagedArtifact = StagedArtifact.NONE;
-
-    private boolean auto_diverter_enabled = true;
+    private boolean turretCenteredOff = false;
 
     @Override
     public void init() {
@@ -130,11 +131,8 @@ public class BozemanTeleop extends OpMode {
         // It creates the localizer, the ball detector, and all other hardware, resolving hardware conflicts.
         robot = new RobotHardwareContainer(hardwareMap, telemetry);
 
-        // 2. Get the authoritative localizer from the container. DO NOT create a new one here.
-        localizer = robot.localizer;
-
         // 3. Create the follower and driver assist modules using the single, authoritative localizer.
-        follower = Constants.createFollower(hardwareMap, localizer);
+        follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         driverAssist = new DriverAssist(follower);
 
@@ -185,26 +183,19 @@ public class BozemanTeleop extends OpMode {
 
         follower.update();
         follower.startTeleopDrive();
+        robot.turret.update(alliance);
     }
 
     @Override
     public void loop() {
         // --- CRITICAL UPDATE ORDER ---
         // 1. Update the localizer first to get the latest pose from all sensors (odometry and vision).
-        localizer.update();
         // 2. Update the follower with the new pose to calculate motor powers for driving.
         follower.update();
-        // 3. Update the Limelight ball detector state machine to cycle through pipelines.
-        robot.limelightBallDetector.update();
-
         // Update all other subsystems on every loop.
         actionManager.update();
         robot.turret.update(alliance);
         robot.launcher.update(alliance);
-
-        if (auto_diverter_enabled) {
-            robot.diverter.update();
-        }
 
         // Main state machine for TeleOp
         switch (currentState) {
@@ -271,16 +262,12 @@ public class BozemanTeleop extends OpMode {
 
         // Diverter Manual Override
         if (gamepad1.dpad_left) {
-            auto_diverter_enabled = false;
             robot.diverter.setPosition(DiverterHardware.GatePosition.PURPLE);
         } else if (gamepad1.dpad_right) {
-            auto_diverter_enabled = false;
             robot.diverter.setPosition(DiverterHardware.GatePosition.GREEN);
         } else if (gamepad1.dpad_up) {
-            auto_diverter_enabled = false;
             robot.diverter.setPosition(DiverterHardware.GatePosition.NEUTRAL);
         } else if (gamepad1.dpadDownWasPressed()) {
-            auto_diverter_enabled = true;
         }
 
         // Drive Mode
@@ -308,8 +295,16 @@ public class BozemanTeleop extends OpMode {
             GameState.alliance = alliance;
         }
 
+        if (gamepad2.yWasPressed()) {
+            if (turretCenteredOff){
+                robot.turret.centerAndPowerOff();
+            } else {
+                robot.turret.setModeToAuto();
+            }
+        }
+
         // Auto-Park
-        if (gamepad1.backWasPressed() && ((CombinedLocalizer) localizer).isPoseReliable()) {
+        if (gamepad1.backWasPressed()) {
             Pose parkPose = (GameState.alliance == GameState.Alliance.BLUE) ? FieldPosePresets.BLUE_BASE : FieldPosePresets.RED_BASE;
             Pose currentPose = follower.getPose();
             Path parkingPath = new Path(new BezierLine(currentPose, parkPose));
@@ -350,19 +345,14 @@ public class BozemanTeleop extends OpMode {
     }
 
     private void updateTelemetry() {
-        if (!((CombinedLocalizer) localizer).isPoseReliable()) {
-            telemetry.addLine("!! LOCALIZATION UNRELIABLE - AUTO-PARK DISABLED !!");
-        }
         telemetry.addData("Alliance", alliance.toString());
         telemetry.addData("Drive Mode", driverAssist.getMode().toString());
         telemetry.addData("Turret Calibrated", robot.turret.isCalibrated());
         telemetry.addData("Turret Auto-Aim", robot.turret.isAutoAimActive ? "ACTIVE" : "OFF");
         telemetry.addData("Launcher State", robot.launcher.isLauncherOn() ? "ON" : "OFF");
         telemetry.addData("Action State", actionManager.getCurrentState());
-        telemetry.addData("Auto Diverter", auto_diverter_enabled ? "ON" : "OFF");
         telemetry.addData("Launcher Target Speed", "%.2f RPM", robot.launcher.getTargetRPM());
         telemetry.addData("Launcher Actual Speed", "%.2f L, %.2f R RPM", robot.launcher.getLeftFlywheelRPM(), robot.launcher.getRightFlywheelRPM());
-        telemetry.addData("Limelight ball detected color", robot.limelightBallDetector.getDetectedColor().toString());
         telemetry.addData("Diverter ", robot.diverter.isStuck()? "STUCK" : "NOT STUCK");
         Pose currentPose = follower.getPose();
         if (currentPose != null) {

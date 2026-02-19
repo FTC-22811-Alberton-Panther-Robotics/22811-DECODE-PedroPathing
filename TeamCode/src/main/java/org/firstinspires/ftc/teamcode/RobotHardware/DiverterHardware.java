@@ -40,8 +40,6 @@ public class DiverterHardware {
     // --- Hardware Devices ---
     private Servo diverter;
     private AnalogInput positionSensor;
-    private LimelightBallDetector limelight;
-
     // --- State Variables ---
     private int greenArtifactCount = 0;
     private int purpleArtifactCount = 0;
@@ -63,47 +61,12 @@ public class DiverterHardware {
     public enum GatePosition { GREEN, PURPLE, NEUTRAL }
     private GatePosition lastCommandedPosition = GatePosition.NEUTRAL;
 
-    public void init(HardwareMap hardwareMap, LimelightBallDetector limelight) {
-        this.limelight = limelight;
+    public void init(HardwareMap hardwareMap) {
         diverter = hardwareMap.get(Servo.class, "diverter");
         positionSensor = hardwareMap.get(AnalogInput.class, "diverterPosition");
     }
 
-    public void update() {
-        GatePosition targetPosition;
-        LimelightBallDetector.DetectedBall detected = limelight.getDetectedColor();
-
-        switch (detected) {
-            case GREEN:
-                targetPosition = GatePosition.GREEN;
-                break;
-            case PURPLE:
-                targetPosition = GatePosition.PURPLE;
-                break;
-            case NONE:
-            default:
-                targetPosition = GatePosition.NEUTRAL;
-                break;
-        }
-
-        if ((targetPosition == GatePosition.GREEN && greenArtifactCount >= 2) || 
-            (targetPosition == GatePosition.PURPLE && purpleArtifactCount >= 2)) {
-            targetPosition = GatePosition.NEUTRAL;
-        }
-
-        setPosition(targetPosition);
-
-        if (isStuck()) {
-            if (targetPosition == GatePosition.GREEN) purpleArtifactCount++;
-            else if (targetPosition == GatePosition.PURPLE) greenArtifactCount++;
-            setPosition(GatePosition.NEUTRAL);
-        } else {
-            if (targetPosition == GatePosition.GREEN) greenArtifactCount++;
-            else if (targetPosition == GatePosition.PURPLE) purpleArtifactCount++;
-        }
-    }
-
-    public void setPosition(GatePosition position) {
+public void setPosition(GatePosition position) {
         lastCommandedPosition = position;
         switch (position) {
             case GREEN: diverter.setPosition(GREEN_POSITION); break;

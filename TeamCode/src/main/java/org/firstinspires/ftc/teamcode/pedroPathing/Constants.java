@@ -63,15 +63,15 @@ public class Constants {
      * @param hardwareMap The hardwareMap from the OpMode.
      * @return A fully initialized Follower instance.
      */
-    public static Follower createFollower(HardwareMap hardwareMap, Localizer localizer) {
+    public static Follower createFollower(HardwareMap hardwareMap) {
         // Create the CombinedLocalizer which will be the single source of truth
         //CombinedLocalizer combinedLocalizer = new CombinedLocalizer(hardwareMap, telemetry);
         // Use the FollowerBuilder to construct the follower with our custom components
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .mecanumDrivetrain(driveConstants)
-                .setLocalizer(localizer) // Inject our fused localizer
+                //.setLocalizer(localizer) // Inject our fused localizer
                 .pathConstraints(pathConstraints)
-                //.pinpointLocalizer(localizerConstants)
+                .pinpointLocalizer(localizerConstants)
                 .build();
     }
 }
